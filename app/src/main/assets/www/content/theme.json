@@ -1,5 +1,5 @@
 {
- "packVersion": 2,
+ "packVersion": 3,
  "palettes": {
   "default": [
    "#8fb86a",
@@ -24,11 +24,6 @@
    "accent": "#a8532c",
    "accentInk": "#ffffff",
    "paper": "#f7ecdc"
-  },
-  "marsh": {
-   "accent": "#2f6f73",
-   "accentInk": "#ffffff",
-   "paper": "#eef0e0"
   },
   "peak": {
    "accent": "#4f5a94",

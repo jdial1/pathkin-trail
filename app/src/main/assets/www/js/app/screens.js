@@ -256,54 +256,233 @@ function partyScreen(a) {
   <div class="actions tight">${go}</div></main>`;
 }
 
-const ARROWS = { '0,1': '→', '0,-1': '←', '1,0': '↓', '-1,0': '↑', '1,1': '↘', '1,-1': '↙', '-1,1': '↗', '-1,-1': '↖' };
+// ---- Stop boards: one layout per kind of puzzle ----------------------------
 
-function bounceTag(fb, target) {
+const ARROWS = { '0,1': '→', '0,-1': '←', '1,0': '↓', '-1,0': '↑', '1,1': '↘', '1,-1': '↙', '-1,1': '↗', '-1,-1': '↖' };
+const GLYPHS = ['◆', '☽', '✚', '≋'];
+const LINK_NAMES = ['A', 'B', 'C', 'D'];
+
+function bounceTag(fb, target, def) {
   if ('rowOk' in fb) {
-    // In a 2x2 field a miss says exactly where the creature belongs.
-    const dr = fb.rowOk ? 0 : target.row === 0 ? 1 : -1;
-    const dc = fb.colOk ? 0 : target.col === 0 ? 1 : -1;
-    return ARROWS[`${dr},${dc}`];
+    if (def.params.rows === 2 && def.params.cols === 2) {
+      // In a 2x2 field a miss says exactly where the creature belongs.
+      const dr = fb.rowOk ? 0 : target.row === 0 ? 1 : -1;
+      const dc = fb.colOk ? 0 : target.col === 0 ? 1 : -1;
+      return ARROWS[`${dr},${dc}`];
+    }
+    return fb.rowOk ? '↔' : fb.colOk ? '↕' : '✕';
   }
   if ('at' in fb) return fb.at === 0 ? '①' : '②';
+  if ('dir' in fb) return fb.dir < 0 ? '←' : '→';
+  if ('cell' in fb) return '●';
   return '✕';
 }
 
-function targetBox(a, stop, target, label, cls, showLabel) {
-  const guides = stop.observations.filter((o) => stop.examples[o.id] && o.target === target.id).map((o) => o.id);
-  const inside = Object.keys(stop.placed).filter((id) => stop.placed[id] === target.id);
-  const bounced = stop.observations.filter((o) => !o.fb.ok && o.target === target.id);
-  const mini = (id, extra = '', k = '') => kin(a, byId(a, id), { size: 30, cls: 'mini ' + k, extra });
-  return `<div class="target ${cls}" role="button" tabindex="0" data-act="target" data-target="${target.id}" aria-label="${esc(label)}">
-    <div class="target-head"><b>${showLabel ? esc(label) : ''}</b><span class="tally">${inside.length}</span></div>
-    <div class="minis" aria-label="${esc(a.t('stop.in'))}">${guides.map((id) => mini(id, '', 'guide')).join('')}${inside.map((id) => mini(id, '', 'yes')).join('')}</div>
-    ${bounced.length ? `<div class="minis bounced" aria-label="${esc(a.t('stop.bounced'))}">${bounced.map((o) => mini(o.id, `<span class="tag" aria-hidden="true">${bounceTag(o.fb, target)}</span>`, 'no')).join('')}</div>` : ''}
-  </div>`;
-}
+const miniOf = (a, id, extra = '', cls = '', size = 30) => kin(a, byId(a, id), { size, cls: 'mini ' + cls, extra });
+const moves = (stop) => stop.observations.filter((o) => !o.guide);
 
-const forkArt = () => `<svg class="forks" viewBox="0 0 400 64" aria-hidden="true">
+// Sorting Stops: a row or grid of targets, each showing who is in and who bounced.
+function sortBoard(a, stop, def, fam) {
+  const targets = fam.targets(def, stop);
+  const kind = stop.family;
+  const grid = kind === 'pattern_grid' || kind === 'toss_plot';
+  const cols = grid ? (kind === 'toss_plot' ? 4 : def.params.cols) : targets.length;
+  const dense = targets.length > 4;
+  const label = (tg, i) =>
+    grid ? a.t('target.cell', { r: tg.row + 1, c: tg.col + 1 }) : ['tour_path', 'rank_line', 'totem_match'].includes(kind) ? a.t(tg.label, { n: i + 1 }) : a.t(tg.label);
+  const boxes = targets
+    .map((tg, i) => {
+      const guides = stop.observations.filter((o) => o.guide && o.action.target === tg.id).map((o) => o.action.id);
+      const inside = Object.keys(stop.placed).filter((id) => stop.placed[id] === tg.id);
+      // A tossed creature is shown on the patch where it landed.
+      const bounced = moves(stop).filter((o) => !o.fb.ok && (o.fb.cell || o.action.target) === tg.id);
+      const size = dense ? 26 : 30;
+      const head = kind === 'totem_match' ? `<b class="glyph" aria-hidden="true">${GLYPHS[i]}</b>` : `<b>${grid ? '' : esc(label(tg, i))}</b>`;
+      return `<div class="target ${kind} ${dense ? 'dense' : ''}" role="button" tabindex="0" data-act="target" data-target="${tg.id}" aria-label="${esc(label(tg, i))}">
+        <div class="target-head">${head}<span class="tally">${inside.length}</span></div>
+        <div class="minis" aria-label="${esc(a.t('stop.in'))}">${guides.map((id) => miniOf(a, id, '', 'guide', size)).join('')}${inside.map((id) => miniOf(a, id, '', 'yes', size)).join('')}</div>
+        ${bounced.length ? `<div class="minis bounced" aria-label="${esc(a.t('stop.bounced'))}">${bounced.map((o) => miniOf(a, o.action.id, `<span class="tag" aria-hidden="true">${bounceTag(o.fb, tg, def)}</span>`, 'no', size)).join('')}</div>` : ''}
+      </div>`;
+    })
+    .join('');
+  const art =
+    kind === 'tour_path'
+      ? `<svg class="forks" viewBox="0 0 400 64" aria-hidden="true">
   <path d="M200 62 L100 34 L50 4 M100 34 L150 4 M200 62 L300 34 L250 4 M300 34 L350 4" class="trailpath thin"/>
   <circle cx="200" cy="54" r="11" class="node"/><text x="200" y="59" text-anchor="middle" class="node-n">1</text>
   <circle cx="100" cy="34" r="11" class="node"/><text x="100" y="39" text-anchor="middle" class="node-n">2</text>
-  <circle cx="300" cy="34" r="11" class="node"/><text x="300" y="39" text-anchor="middle" class="node-n">2</text></svg>`;
+  <circle cx="300" cy="34" r="11" class="node"/><text x="300" y="39" text-anchor="middle" class="node-n">2</text></svg>`
+      : kind === 'rank_line'
+        ? `<p class="meta ends"><span>${esc(a.t('stop.front'))}</span><span>${esc(a.t('stop.back'))}</span></p>`
+        : '';
+  return `${kind === 'rank_line' ? art : ''}<div class="targets n${cols}">${boxes}</div>${kind === 'tour_path' ? art : ''}`;
+}
+
+// Seating Stops: a grid of seats with links between some neighbours.
+function seatBoard(a, stop) {
+  const { seats, cols, edges } = stop.setup;
+  const last = moves(stop).slice(-1)[0];
+  const bad = last && !last.fb.ok ? last.fb.bad : [];
+  const link = (i, j, dir) => {
+    const e = edges.findIndex(([x, y]) => x === i && y === j);
+    if (e < 0) return `<span class="link none ${dir}"></span>`;
+    const kind = edges[e][2];
+    return `<span class="link ${dir} k${kind} ${bad.includes(e) ? 'bad' : ''}" role="img" aria-label="${esc(a.t('stop.link', { kind: LINK_NAMES[kind] }))}">${stop.setup.kinds > 1 ? LINK_NAMES[kind] : ''}</span>`;
+  };
+  let html = '';
+  for (let r = 0; r * cols < seats; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      if (i >= seats) {
+        html += '<span></span>' + (c < cols - 1 ? '<span></span>' : '');
+        continue;
+      }
+      const id = stop.extra.seats[i];
+      const who = id ? byId(a, id) : null;
+      const label = `${a.t('target.seat', { n: i + 1 })}${who ? ': ' + (who.nickname || a.t('creature.unnamed', { n: Number(id.slice(2)) })) : ''}`;
+      html += `<div class="seat ${who ? 'taken' : ''}" role="button" tabindex="0" data-act="target" data-target="s${i}" aria-label="${esc(label)}">${who ? creatureSvg(who.traits, a.palette, { size: 40 }) : ''}</div>`;
+      if (c < cols - 1) html += i + 1 < seats ? link(i, i + 1, 'h') : '<span></span>';
+    }
+    if ((r + 1) * cols < seats) {
+      for (let c = 0; c < cols; c++) {
+        const i = r * cols + c;
+        html += (i + cols < seats ? link(i, i + cols, 'v') : '<span></span>') + (c < cols - 1 ? '<span></span>' : '');
+      }
+    }
+  }
+  return `<div class="seats">${html}</div>`;
+}
+
+// Trail foods, drawn as simple shapes.
+const FOODS = {
+  berry: '<circle cx="12" cy="13" r="7"/><path d="M12 6 L14 2"/>',
+  nut: '<path d="M12 3 L20 12 L12 21 L4 12 Z"/>',
+  leaf: '<path d="M4 20 Q4 5 20 4 Q19 19 4 20 Z M4 20 L14 10"/>',
+  root: '<path d="M7 4 H17 L12 22 Z M9 9 H15"/>',
+  seed: '<ellipse cx="12" cy="12" rx="5" ry="8.5"/>',
+  cone: '<path d="M12 2 L20 21 H4 Z M8 12 H16 M6.5 16.5 H17.5"/>',
+};
+const food = (id, size = 26) => `<svg class="food" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${FOODS[id]}</svg>`;
+
+function tradeBoard(a, stop, def, fam) {
+  const { items } = stop.setup;
+  const set = (mask) => items.filter((_, i) => mask & (1 << i));
+  const keepers = fam
+    .targets(def, stop)
+    .map((tg) => {
+      const fed = stop.extra.fed[tg.n];
+      const rows = stop.observations
+        .filter((o) => o.action.keeper === tg.n)
+        .map((o) => `<div class="offer ${o.fb.ok ? 'yes' : o.fb.kind}">${set(o.action.items).map((id) => food(id, 20)).join('')}<b aria-label="${esc(a.t(o.fb.ok ? 'stop.accepted' : o.fb.kind === 'bad' ? 'stop.tradeBad' : 'stop.tradeMore'))}">${o.fb.ok ? '✓' : o.fb.kind === 'bad' ? '✕' : '+'}</b></div>`)
+        .join('');
+      return `<div class="target keeper ${fed ? 'fed' : ''}" role="button" tabindex="0" data-act="keeper" data-target="${tg.id}" data-keeper="${tg.n}" aria-label="${esc(a.t('target.keeper', { n: tg.n + 1 }))}">
+        <div class="target-head"><b>${esc(a.t('target.keeper', { n: tg.n + 1 }))}</b><span class="tally">${fed ? '✓' : '?'}</span></div>${rows}</div>`;
+    })
+    .join('');
+  const chips = items
+    .map((id, i) => `<button class="chip ${a.ui.basket & (1 << i) ? 'on' : ''}" data-act="item" data-item="${i}" aria-pressed="${!!(a.ui.basket & (1 << i))}">${food(id)}<span>${esc(a.t('item.' + id))}</span></button>`)
+    .join('');
+  return `<div class="targets n${stop.setup.keepers}">${keepers}</div>
+    <div class="basket" data-drag="basket" aria-label="${esc(a.t('stop.basket'))}"><b>${esc(a.t('stop.basket'))}</b>${a.ui.basket ? set(a.ui.basket).map((id) => food(id, 24)).join('') : `<span class="meta">${esc(a.t('stop.basketEmpty'))}</span>`}</div>
+    <div class="chips">${chips}</div>`;
+}
+
+function signalBoard(a, stop) {
+  const fam = family('signal_guess');
+  if (stop.status !== 'playing') return '';
+  const want = byId(a, fam.truth(stop));
+  const carved = fam.carved(stop);
+  const slots = a.content.traits.slots.map((s) => s.id);
+  const tries = stop.observations
+    .filter((o) => o.pre.round === stop.extra.round && !o.fb.ok)
+    .map((o) => {
+      const marks = stop.setup.grade === 'count' ? `<b>${esc(a.t('stop.matches', { n: o.fb.marks }))}</b>` : [...o.fb.marks].map((m, i) => `<i class="mark ${m === '1' ? 'hit' : ''}" role="img" aria-label="${esc(a.t('slot.' + slots[i]))}: ${esc(a.t(m === '1' ? 'stop.same' : 'stop.differs'))}">${m === '1' ? '●' : '○'}</i>`).join('');
+      return `<div class="try">${miniOf(a, o.action.id)}<span class="marks">${marks}</span></div>`;
+    })
+    .join('');
+  return `<div class="target stone" role="button" tabindex="0" data-act="target" data-target="stone" aria-label="${esc(a.t('target.stone'))}">
+    <div class="target-head"><b>${esc(a.t('stop.signalOf', { n: stop.extra.round + 1, t: stop.setup.rounds }))}</b></div>
+    <div class="carved">${carved.length ? carved.map((s) => `<span>${creatureSvg(want.traits, a.palette, { size: 40, only: s })}<small>${esc(a.t(`${s}.${want.traits[s]}`))}</small></span>`).join('') : `<span class="meta">${esc(a.t('stop.nothingCarved'))}</span>`}</div>
+    ${stop.setup.grade === 'count' ? '' : `<small class="meta">${esc(slots.map((s) => a.t('slot.' + s)).join(' · '))}</small>`}
+    ${tries}</div>`;
+}
+
+function keyTraits(a, key) {
+  const parts = key.split(',');
+  const out = {};
+  a.content.traits.slots.forEach((s, i) => (out[s.id] = s.values.find((v) => String(v) === parts[i])));
+  return out;
+}
+
+function echoBoard(a, stop) {
+  const fam = family('echo_match');
+  const now = fam.current(stop);
+  const shown = now ? fam.reflect(stop.hyp, byId(a, now).traits, a.content.traits) : null;
+  const pairs = stop.observations
+    .map((o) => {
+      const refl = keyTraits(a, o.fb.ok ? o.pre.shown : o.fb.refl);
+      return `<div class="pair">${miniOf(a, o.action.id, '', o.guide ? 'guide' : '')}<span aria-hidden="true">→</span><span class="refl" role="img" aria-label="${esc(traitWords(a, { traits: refl }).join(', '))}">${creatureSvg(refl, a.palette, { size: 30 })}</span></div>`;
+    })
+    .join('');
+  const pond = shown
+    ? `<div class="target pond" role="button" tabindex="0" data-act="target" data-target="pond" aria-label="${esc(a.t('target.pond'))}: ${esc(traitWords(a, { traits: shown }).join(', '))}">
+    <div class="target-head"><b>${esc(a.t('stop.whose'))}</b></div>
+    <div class="refl big">${creatureSvg(shown, a.palette, { size: 88 })}</div></div>`
+    : '';
+  return `${pond}
+    <div class="pairs" aria-label="${esc(a.t('stop.seen'))}">${pairs}</div>`;
+}
+
+function switchBoard(a, stop, def, fam) {
+  const dirs = a.ui.dirs;
+  const sheds = fam
+    .targets(def, stop)
+    .map((tg) => {
+      const inside = Object.keys(stop.placed).filter((id) => stop.placed[id] === tg.id);
+      const tint = stop.setup.sheds[tg.n];
+      return `<div class="target shed" aria-label="${esc(a.t('target.shed', { n: tg.n + 1 }))}: ${esc(a.t('tint.' + tint))}">
+        <div class="target-head"><b>${tg.n + 1}</b>${creatureSvg({ tint }, a.palette, { size: 34, only: 'tint' })}<span class="tally">${inside.length}</span></div>
+        <div class="minis">${inside.map((id) => miniOf(a, id, '', 'yes', 24)).join('')}</div></div>`;
+    })
+    .join('');
+  const sw = (j) => {
+    const atom = stop.setup.triggers[j] || (stop.extra.known.includes(j) ? stop.hyp[j] : null);
+    const trig = atom ? creatureSvg({ [atom.slot]: atom.value }, a.palette, { size: 30, only: atom.slot }) : '<b class="unknown">?</b>';
+    const label = `${a.t('stop.switch', { n: j + 1 })}: ${a.t(dirs[j] ? 'stop.right' : 'stop.left')}. ${atom ? a.t('stop.flipsFor', { rule: a.t(`${atom.slot}.${atom.value}`) }) : a.t('stop.flipsHidden')}`;
+    return `<button class="switch-btn" data-act="switch" data-switch="${j}" aria-label="${esc(label)}"><span class="arrow" aria-hidden="true">${dirs[j] ? '↗' : '↖'}</span>${trig}</button>`;
+  };
+  const need = stop.queue.length > stop.setup.size ? stop.setup.size : null;
+  const ready = need ? a.ui.convoy.length === need : a.ui.convoy.length >= 1;
+  // Earlier guide convoys stay visible, with the player's two latest launches.
+  const runs = stop.observations
+    .filter((o) => o.guide)
+    .concat(moves(stop).slice(-2))
+    .map((o) => `<div class="run">${o.action.dirs.map((d) => (d ? '↗' : '↖')).join('')} ${o.action.convoy.map((id, i) => miniOf(a, id, `<span class="tag share" aria-hidden="true">${o.fb.exits[i] + 1}</span>`, o.guide ? 'guide' : '', 24)).join('')}</div>`)
+    .join('');
+  return `<div class="targets n4">${sheds}</div>
+    <div class="rails"><div class="rail-row">${sw(1)}${sw(2)}</div><div class="rail-row">${sw(0)}</div></div>
+    <div class="target rail" role="button" tabindex="0" data-act="target" data-target="rail" aria-label="${esc(a.t('stop.convoy'))}">
+      <b>${esc(need ? a.t('stop.convoyOf', { n: need }) : a.t('stop.convoy'))}</b>
+      <div class="minis">${a.ui.convoy.map((id, i) => miniOf(a, id, `<span class="tag share" aria-hidden="true">${i + 1}</span>`)).join('')}</div>
+      ${btn('launch', a.t('stop.send'), 'primary small', ready ? '' : 'disabled')}</div>
+    <div class="runs" aria-label="${esc(a.t('stop.seen'))}">${runs}</div>`;
+}
+
+const BOARDS = { sort: sortBoard, seat: seatBoard, trade_ledger: tradeBoard, signal_guess: signalBoard, echo_match: echoBoard, switch_run: switchBoard };
 
 function stopScreen(a) {
   const p = a.profile;
   const stop = p.stop;
   const def = puzzleDef(a.content, stop.puzzleId);
   const fam = family(stop.family);
-  const targets = fam.targets(def);
   const max = def.tiers[stop.tier].patience;
   const pips = Array.from({ length: max }, (_, i) => `<i class="pip ${i < stop.patience ? 'on' : ''}"></i>`).join('');
-  const kind = stop.family;
-  const label = (tg, i) => (kind === 'pattern_grid' ? a.t('target.cell', { r: tg.row + 1, c: tg.col + 1 }) : kind === 'tour_path' ? a.t('target.exit', { n: i + 1 }) : a.t(tg.label));
-  const boxes = targets.map((tg, i) => targetBox(a, stop, tg, label(tg, i), kind, kind !== 'pattern_grid')).join('');
-  const cols = kind === 'pattern_grid' ? 2 : targets.length;
+  const board = (BOARDS[stop.family] || BOARDS[fam.kind])(a, stop, def, fam);
   const hints = stop.hints.length ? `<p class="hintline">${stop.hints.map((s) => esc(a.t('stop.hintIs', { slot: a.t('slot.' + s) }))).join(' · ')}</p>` : '';
-  const guides = Object.keys(stop.examples).length;
-  const tried = stop.observations.length > guides;
+  const guides = stop.observations.some((o) => o.guide) || stop.held.length > 0;
+  const tried = moves(stop).length > 0;
   // First Stop of a new Trail: a two-step coach instead of the blurb.
-  const coach = p.kind === 'trail' && p.stats.stopsSolved === 0 && p.run.stopIndex === 0;
+  const coach = p.kind === 'trail' && p.stats.stopsSolved === 0 && p.run.stopIndex === 0 && fam.kind === 'sort';
   const line = a.ui.sel ? a.t('stop.tapTarget') : coach ? a.t(tried ? 'coach.learn' : 'coach.send') : a.loc(def.blurb);
   let where;
   if (p.kind === 'daily') where = a.t('daily.title');
@@ -311,23 +490,25 @@ function stopScreen(a) {
     const leg = legDef(a.content, p.run.legId);
     where = a.t('stop.stopOf', { n: p.run.stopIndex + 1, t: branchDef(leg, p.run.branch).stops.length });
   }
+  const picking = stop.family === 'switch_run';
   const tray = stop.queue
-    .map((id) =>
-      kin(a, byId(a, id), {
+    .map((id) => {
+      const on = picking ? a.ui.convoy.includes(id) : a.ui.sel === id;
+      return kin(a, byId(a, id), {
         size: 46,
         act: 'tray',
-        cls: 'tray-kin' + (a.ui.sel === id ? ' sel' : ''),
-        pressed: a.ui.sel === id,
+        cls: 'tray-kin' + (on ? ' sel' : ''),
+        pressed: on,
         extra: stop.badges[id] ? `<span class="badge" aria-hidden="true">${stop.badges[id]}</span>` : '',
-      })
-    )
+      });
+    })
     .join('');
   return `<main class="screen stop"><header class="bar"><div><h2>${esc(a.loc(def.title))}</h2>
       <small>${esc(where)} · ${esc(a.t('tier.' + stop.tier))}</small></div>
     <div class="patience" role="img" aria-label="${esc(a.t('stop.patience'))} ${stop.patience}/${max}">${pips}</div></header>
   <div class="body">
-    <p class="blurb">${esc(line)}</p>${guides && !tried ? `<p class="meta">${esc(a.t('stop.guides'))}</p>` : ''}${hints}
-    <div class="targets n${cols}">${boxes}</div>${kind === 'tour_path' ? forkArt() : ''}
+    <p class="blurb">${esc(line)}</p>${guides && !tried && fam.kind === 'sort' ? `<p class="meta">${esc(a.t('stop.guides'))}</p>` : ''}${hints}
+    ${board}
   </div>
   <section class="tray" aria-label="${esc(a.t('stop.tray'))}">${tray}</section>
   <div class="actions">${btn('pause', a.t('stop.pause'))}${btn('hint', `${a.t('stop.hint')} (${p.hintTokens})`, '', p.hintTokens ? '' : 'disabled')}</div>
@@ -340,7 +521,7 @@ function stopResult(a, stop, fam) {
   return `<div class="scrim"><div class="sheet center" role="dialog" aria-modal="true" aria-label="${esc(a.t(solved ? 'stop.solved' : 'stop.failed'))}">
     <h2>${esc(a.t(solved ? 'stop.solved' : 'stop.failed'))}</h2>
     <p>${esc(solved ? a.t('stop.solvedBody', { n }) : a.t('stop.failedBody', { n, r: stop.queue.length }))}</p>
-    <div class="card"><b>${esc(a.t('stop.ruleWas'))}</b>${fam.describe(stop.hyp, a.t).map((line) => `<div>${esc(line)}</div>`).join('')}</div>
+    <div class="card"><b>${esc(a.t('stop.ruleWas'))}</b>${fam.describe(stop.hyp, a.t, stop.setup, { traits: a.content.traits }).map((line) => `<div>${esc(line)}</div>`).join('')}</div>
     <div class="actions">${btn('stop-continue', a.t('common.continue'), 'primary')}</div></div></div>`;
 }
 

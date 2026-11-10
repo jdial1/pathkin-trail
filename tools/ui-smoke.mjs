@@ -1,7 +1,7 @@
-// Browser smoke test of the real UI: leads a party along the whole Trail by
-// tap and by drag, reloads mid-Stop to prove resume, rescues a stranded
-// creature, plays the daily Stop, opens every screen, loads a version-1 save,
-// and saves screenshots. Usage: node tools/ui-smoke.mjs [outDir]
+// Browser smoke test of the real UI: leads parties through all twelve Stops
+// by tap and by drag, reloads mid-Stop to prove resume, rescues a stranded
+// creature, plays the daily Stop, opens every screen, loads saves from both
+// older versions, and saves screenshots. Usage: node tools/ui-smoke.mjs [outDir]
 import { spawn } from 'node:child_process';
 import { mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -26,42 +26,70 @@ try {
   const act = (name, extra = '') => page.click(`[data-act="${name}"]${extra}`);
   const state = () => page.evaluate(() => JSON.parse(JSON.stringify(window.__pathkin.profile)));
   const count = (s, status) => s.roster.filter((c) => c.status === status).length;
-  // Where the hidden rule says a creature belongs (test-only peek).
-  const answer = (id) =>
-    page.evaluate(async (cid) => {
-      const { family } = await import('./js/core/families.js');
-      const p = window.__pathkin.profile;
-      return family(p.stop.family).place(p.stop.hyp, p.roster.find((c) => c.id === cid).traits);
-    }, id);
-  const send = async (id, target) => {
-    await page.click(`.tray-kin[data-id="${id}"]`);
-    await page.click(`[data-target="${target}"]`);
-  };
-  const seenFamilies = new Set();
+  // The move a player who knew the hidden rule would make (test-only peek).
+  const answer = () =>
+    page.evaluate(async () => {
+      const { bots } = await import('./js/core/bots.js');
+      const game = await import('./js/core/game.js');
+      const app = window.__pathkin;
+      return bots.perfect(app.profile.stop, game.stopCtx(app.profile, app.content));
+    });
+  // Carries out a move through the interface, the way a player would by tapping.
+  async function perform(action) {
+    if (action.lift) return page.click(`[data-target="${action.lift}"]`);
+    if (action.keeper !== undefined) {
+      const basket = await page.evaluate(() => window.__pathkin.ui.basket);
+      for (let i = 0; i < 8; i++) if ((basket ^ action.items) & (1 << i)) await page.click(`[data-act="item"][data-item="${i}"]`);
+      return page.click(`[data-keeper="${action.keeper}"]`);
+    }
+    if (action.convoy) {
+      const ui = await page.evaluate(() => ({ dirs: window.__pathkin.ui.dirs, convoy: window.__pathkin.ui.convoy }));
+      for (const id of ui.convoy) await page.click(`.tray-kin[data-id="${id}"]`);
+      for (let j = 0; j < 3; j++) if (ui.dirs[j] !== action.dirs[j]) await page.click(`[data-act="switch"][data-switch="${j}"]`);
+      for (const id of action.convoy) await page.click(`.tray-kin[data-id="${id}"]`);
+      return act('launch');
+    }
+    await page.click(`.tray-kin[data-id="${action.id}"]`);
+    return page.click(`[data-target="${action.target}"]`);
+  }
+  const played = new Set();
 
-  // Plays the current leg run to its summary, always sending correctly
-  // (plus whatever `extras` does on each Stop).
+  // Plays the current leg run to its summary with correct moves
+  // (plus whatever `extras` does at the start of each Stop).
   async function playLeg(extras = async () => {}) {
     let s = await state();
     while (s.screen === 'stop') {
-      const key = `${s.stop.family}-${Object.keys(s.stop.placed).length === 0 ? s.stop.puzzleId : ''}`;
-      if (!seenFamilies.has(s.stop.puzzleId)) {
-        seenFamilies.add(s.stop.puzzleId);
-        await shot(`stop-${s.stop.puzzleId}`);
+      const fresh = !played.has(s.stop.puzzleId);
+      if (fresh) {
+        played.add(s.stop.puzzleId);
+        await shot(`stop-${played.size.toString().padStart(2, '0')}-${s.stop.family}-start`);
       }
-      await extras(s, key);
+      await extras(s);
       s = await state();
+      let moves = 0;
       while (s.stop && s.stop.status === 'playing') {
-        const id = s.stop.queue[0];
-        await send(id, await answer(id));
+        const before = JSON.stringify(s.stop);
+        await perform(await answer());
         s = await state();
+        assert.notEqual(JSON.stringify(s.stop), before, `${s.stop.family}: a move through the interface changed nothing`);
+        if (fresh && ++moves === 2) await shot(`stop-${played.size.toString().padStart(2, '0')}-${s.stop.family}-mid`);
+        assert.ok(moves < 80, s.stop.family + ' never ended');
       }
       await page.waitForSelector('[data-act="stop-continue"]');
+      assert.equal(s.stop.status, 'solved', s.stop.family);
+      if (fresh) await shot(`stop-${played.size.toString().padStart(2, '0')}-${s.stop.family}-result`);
       await act('stop-continue');
       s = await state();
     }
     assert.equal(s.screen, 'summary');
     return s;
+  }
+  async function startLeg(tier, branch) {
+    await act('set-tier', `[data-tier="${tier}"]`);
+    await act('goto', '[data-screen="party"]');
+    await act('party-fill');
+    await act('start-leg', branch ? `[data-branch="${branch}"]` : '');
+    assert.equal((await state()).stop.tier, tier);
   }
 
   // ---- Title, roster, map ----
@@ -86,7 +114,7 @@ try {
   await shot('04-party');
   await act('start-leg');
 
-  // ---- Leg 1: a miss, a drag, a mid-Stop reload ----
+  // ---- Leg 1, first party: a miss, a drag, a mid-Stop reload ----
   let missed = false;
   let dragged = false;
   let reloaded = false;
@@ -94,31 +122,29 @@ try {
     if (!missed) {
       missed = true;
       assert.ok(await page.locator('.kin.mini.guide').count(), 'trail guides are shown');
-      const id = st.stop.queue[0];
-      const right = await answer(id);
+      const right = await answer();
       const all = await page.$$eval('[data-target]', (els) => els.map((e) => e.dataset.target));
-      await send(id, all.find((t) => t !== right));
+      await perform({ id: right.id, target: all.find((t) => t !== right.target) });
       const after = await state();
       assert.equal(after.stop.patience, st.stop.patience - 1);
-      assert.equal(after.stop.badges[id], 1);
+      assert.equal(after.stop.badges[right.id], 1);
       await shot('05-bounce');
       if (after.stop.status !== 'playing') return;
-      const id2 = after.stop.queue[0];
-      const target = await answer(id2);
-      const from = await page.locator(`.tray-kin[data-id="${id2}"]`).boundingBox();
-      const to = await page.locator(`[data-target="${target}"]`).boundingBox();
+      const move = await answer();
+      const from = await page.locator(`.tray-kin[data-id="${move.id}"]`).boundingBox();
+      const to = await page.locator(`[data-target="${move.target}"]`).boundingBox();
       await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
       await page.mouse.down();
       await page.mouse.move(from.x + 40, from.y - 60, { steps: 4 });
       await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 6 });
       await shot('06-dragging');
       await page.mouse.up();
-      assert.equal((await state()).stop.placed[id2], target, 'drag delivered the creature');
+      await page.waitForTimeout(120); // the app ignores a tap that lands right on the heels of a drag
+      assert.equal((await state()).stop.placed[move.id], move.target, 'drag delivered the creature');
       dragged = true;
     } else if (!reloaded && st.stop.status === 'playing') {
       // Kill and relaunch mid-Stop: the same puzzle state must come back.
-      const id = st.stop.queue[0];
-      await send(id, await answer(id));
+      await perform(await answer());
       const mid = await state();
       if (mid.stop.status !== 'playing') return;
       await page.reload();
@@ -181,32 +207,41 @@ try {
   assert.ok(s.goals.rescuer);
   await act('close-inspect', '.btn');
 
-  // ---- Legs 2 to 4, taking one branch at each fork, on rising tiers ----
-  const plan = [['a', 'steady'], ['b', 'hard'], [null, 'expert']];
-  for (let i = 0; i < plan.length; i++) {
-    const [branch, tier] = plan[i];
-    await act('goto', '[data-screen="map"]');
-    assert.equal((await state()).camp, i + 1);
-    await act('set-tier', `[data-tier="${tier}"]`);
-    if (i === 0) await shot('10-map-camp1');
-    await act('goto', '[data-screen="party"]');
-    await act('party-fill');
-    if (branch) {
-      assert.equal(await page.locator('[data-act="start-leg"]').count(), 2, 'a fork offers two paths');
-      if (i === 0) await shot('11-party-fork');
-    }
-    await act('start-leg', branch ? `[data-branch="${branch}"]` : '');
-    s = await state();
-    assert.equal(s.stop.tier, tier);
-    s = await playLeg();
-    assert.equal(s.summary.to, i + 2);
-    if (i === plan.length - 1) await shot('12-summary-home');
-    await act('summary-ok');
-  }
+  // ---- A second party through leg 1, then both paths of the fork, then home ----
+  await act('goto', '[data-screen="map"]');
+  await page.click('[data-act="select-camp"][data-camp="0"]');
+  assert.equal((await state()).camp, 0);
+  await startLeg('steady');
+  await playLeg();
+  await act('summary-ok');
+  await act('goto', '[data-screen="map"]');
+  assert.equal((await state()).camp, 1);
+  await shot('10-map-camp1');
+  await act('goto', '[data-screen="party"]');
+  assert.equal(await page.locator('[data-act="start-leg"]').count(), 2, 'a fork offers two paths');
+  await act('party-fill');
+  await shot('11-party-fork');
+  await act('goto', '[data-screen="map"]');
+  await startLeg('hard', 'a');
+  s = await playLeg();
+  assert.equal(s.summary.to, 2);
+  await act('summary-ok');
+  await act('goto', '[data-screen="map"]');
+  await page.click('[data-act="select-camp"][data-camp="1"]');
+  await startLeg('expert', 'b');
+  await playLeg();
+  await act('summary-ok');
+  await act('goto', '[data-screen="map"]');
+  assert.equal((await state()).camp, 2);
+  await startLeg('expert');
+  s = await playLeg();
+  assert.equal(s.summary.home, true);
+  await shot('12-summary-home');
+  await act('summary-ok');
   s = await state();
   assert.ok(count(s, 'delivered') >= 1, 'somebody is home');
   assert.equal(s.stats.delivered, count(s, 'delivered'));
-  assert.ok(seenFamilies.size === 12, 'played 12 Stops: ' + seenFamilies.size);
+  assert.equal(played.size, 12, 'all twelve Stops were played through the interface');
   await shot('13-home-camp');
   await act('goto', '[data-screen="map"]');
   await shot('14-map-home');
@@ -216,7 +251,8 @@ try {
   assert.equal((await state()).camp, 0);
   await act('goto', '[data-screen="goals"]');
   await shot('15-goals');
-  assert.ok((await state()).goals.first_home);
+  s = await state();
+  assert.ok(s.goals.first_home && s.goals.both_forks);
   await act('goto', '[data-screen="map"]');
   await act('end-trail');
   await act('confirm-yes');
@@ -226,22 +262,22 @@ try {
 
   // ---- Daily Stop ----
   await act('open-daily');
-  await page.waitForSelector('.tray');
+  await page.waitForSelector('.screen.stop');
   await shot('17-daily');
   s = await state();
   assert.equal(s.kind, 'daily');
-  const firstDaily = s.stop.queue[0];
-  await send(firstDaily, await answer(firstDaily));
+  await perform(await answer());
   const midDaily = await state();
-  await page.reload();
-  await page.waitForSelector('.logo');
-  await act('open-daily');
-  await page.waitForSelector('.screen.stop');
-  assert.deepEqual(await state(), midDaily, 'the daily Stop resumes the same day');
+  if (midDaily.stop.status === 'playing') {
+    await page.reload();
+    await page.waitForSelector('.logo');
+    await act('open-daily');
+    await page.waitForSelector('.screen.stop');
+    assert.deepEqual(await state(), midDaily, 'the daily Stop resumes the same day');
+  }
   s = midDaily;
   while (s.stop.status === 'playing') {
-    const id = s.stop.queue[0];
-    await send(id, await answer(id));
+    await perform(await answer());
     s = await state();
   }
   await act('stop-continue');
@@ -269,18 +305,21 @@ try {
   assert.equal(await page.evaluate(() => window.__pathkin.settings.language), 'es');
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'es');
 
-  // ---- A version-1 save opens and lands on the new map ----
-  const v1 = readFileSync(new URL('../tests/golden/save-v1-midstop.json', import.meta.url), 'utf8');
-  await page.evaluate((text) => localStorage.setItem('pathkin.slot2', JSON.stringify({ ...JSON.parse(text), slot: 2 })), v1);
-  await page.reload();
-  await page.waitForSelector('.logo');
-  await act('title-continue');
-  await act('slot-open', '[data-slot="2"]');
-  s = await state();
-  assert.equal(s.schemaVersion, 2);
-  assert.equal(s.screen, 'map');
-  assert.equal(s.roster.filter((c) => c.at === 1 && c.status === 'available').length, 16);
-  await shot('22-migrated-v1');
+  // ---- Saves from both older versions open and land on the map ----
+  for (const [slot, file, atCamp] of [[2, 'save-v1-midstop', 1], [3, 'save-v2-midstop', 2]]) {
+    const text = readFileSync(new URL(`../tests/golden/${file}.json`, import.meta.url), 'utf8');
+    await page.evaluate(([n, doc]) => localStorage.setItem('pathkin.slot' + n, JSON.stringify({ ...JSON.parse(doc), slot: n })), [slot, text]);
+    await page.reload();
+    await page.waitForSelector('.logo');
+    await act('title-continue');
+    await act('slot-open', `[data-slot="${slot}"]`);
+    s = await state();
+    assert.equal(s.schemaVersion, 3);
+    assert.equal(s.screen, 'map');
+    assert.equal(s.roster.filter((c) => c.at === atCamp && c.status === 'available').length, 16);
+    await shot(`22-migrated-${file}`);
+    await act('to-title');
+  }
 
   assert.deepEqual(errors, [], 'no page errors');
   console.log('UI smoke passed; screenshots in ' + out);

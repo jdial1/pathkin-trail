@@ -4,6 +4,7 @@
 import * as game from '../core/game.js';
 import { prepareContent } from '../core/content.js';
 import { encodeCombo } from '../core/traits.js';
+import { family } from '../core/families.js';
 import { storage } from './storage.js';
 import { bus, attachSenses } from './feedback.js';
 import * as view from './screens.js';
@@ -23,7 +24,7 @@ const app = {
   palette: [],
   book: new Set(), // trait combinations met so far, across all Trails
   dailySolved: 0,
-  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'ready', filter: {} },
+  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'ready', filter: {}, basket: 0, convoy: [], dirs: [0, 0, 0], stopKey: '' },
   t(key, vars) {
     let s = app.content.text[key];
     if (s === undefined) return key;
@@ -131,9 +132,24 @@ function dispatch(ev) {
     saveProfile();
   }
   if (app.profile.screen !== screen) app.ui.inspect = null;
+  syncStopUi();
   if (app.profile.stop === null || !app.profile.stop.queue.includes(app.ui.sel)) app.ui.sel = null;
   render();
   for (const e of r.events) bus.emit(e);
+}
+
+// Per-Stop interface state (food basket, convoy, switch settings) starts
+// fresh with each new Stop and never holds creatures that have left.
+function syncStopUi() {
+  const stop = app.profile && app.profile.stop;
+  const key = stop ? `${app.profile.kind}|${app.profile.run.stopIndex}|${stop.puzzleId}|${stop.tier}` : '';
+  if (key !== app.ui.stopKey) {
+    app.ui.stopKey = key;
+    app.ui.basket = 0;
+    app.ui.convoy = [];
+    app.ui.dirs = stop && stop.extra.dirs ? stop.extra.dirs.slice() : [0, 0, 0];
+  }
+  if (stop) app.ui.convoy = app.ui.convoy.filter((id) => stop.queue.includes(id));
 }
 
 function render() {
@@ -183,21 +199,40 @@ function flash(selector, cls) {
   setTimeout(() => el.classList.remove(cls), 600);
 }
 
+// Which sentence explains a miss.
+function missKey(fb) {
+  if ('at' in fb) return fb.at === 0 ? 'stop.fork1' : 'stop.fork2';
+  if ('rowOk' in fb) return fb.rowOk ? 'stop.rowOk' : fb.colOk ? 'stop.colOk' : 'stop.neither';
+  if ('dir' in fb) return fb.dir < 0 ? 'stop.lineFront' : 'stop.lineBack';
+  if ('cell' in fb) return 'stop.tossMiss';
+  if ('bad' in fb) return 'stop.seatMiss';
+  if ('kind' in fb) return 'stop.tradeBad';
+  if ('marks' in fb) return 'stop.signalMiss';
+  if ('refl' in fb) return 'stop.pondMiss';
+  if ('exits' in fb) return 'stop.railMiss';
+  return 'stop.rejected';
+}
+
 // The screen's own subscription to gameplay feedback.
 bus.on((e) => {
-  if (e.type === 'accepted') flash(`[data-target="${e.target}"]`, 'yes');
+  // Where on the board an event happened.
+  const spot = (ev) => ev.target || (ev.action && ev.action.keeper !== undefined ? 'k' + ev.action.keeper : 'rail');
+  if (e.type === 'accepted') flash(`[data-target="${spot(e)}"]`, 'yes');
   if (e.type === 'rejected') {
-    flash(`[data-target="${e.target}"]`, 'no');
+    flash(`[data-target="${spot(e)}"]`, 'no');
     const fb = e.fb;
-    toast('at' in fb ? app.t(fb.at === 0 ? 'stop.fork1' : 'stop.fork2') : !('rowOk' in fb) ? app.t('stop.rejected') : fb.rowOk ? app.t('stop.rowOk') : fb.colOk ? app.t('stop.colOk') : app.t('stop.neither'));
+    toast(app.t(missKey(fb), { n: e.delivered.length }));
   }
+  if (e.type === 'info') toast(app.t('stop.tradeMore'));
   if (e.type === 'stranded') toast(app.t('toast.stranded', { n: e.ids.length }));
   if (e.type === 'rescued') toast(app.t('toast.rescued'));
   if (e.type === 'rescueMiss') toast(app.t('toast.rescueMiss', { n: e.shared, need: app.content.trail.rescueSharedTraits }));
   if (e.type === 'assist' && e.kind === 'freeHint') toast(app.t('assist.freeHint'));
   if (e.type === 'goal') toast(app.t('toast.goal', { goal: app.t('goal.' + e.id) }));
   if (e.type === 'hint') {
-    toast(e.noTokens ? app.t('stop.noHint') : e.slot ? app.t('stop.hintIs', { slot: app.t('slot.' + e.slot) }) : app.t('stop.noMoreHints'));
+    // A hint is either a slot name or a small fact with its own sentence.
+    const vars = e.say ? Object.fromEntries(Object.entries(e.say.vars).map(([k, v]) => [k, typeof v === 'string' && v in app.content.text ? app.t(v) : v])) : null;
+    toast(e.noTokens ? app.t('stop.noHint') : e.say ? app.t(e.say.key, vars) : e.slot ? app.t('stop.hintIs', { slot: app.t('slot.' + e.slot) }) : app.t('stop.noMoreHints'));
   }
 });
 
@@ -205,6 +240,8 @@ bus.on((e) => {
 
 function openGame(profile) {
   app.profile = profile;
+  app.ui.stopKey = '';
+  syncStopUi();
   app.ui = { ...app.ui, view: 'game', sel: null, inspect: null, paused: false, filter: {}, campTab: 'ready' };
   if (profile.kind === 'trail') {
     if (profile.options.assist !== app.settings.assist) app.profile = game.reduce(profile, { type: 'OPTION', assist: app.settings.assist }, app.content).profile;
@@ -229,6 +266,19 @@ function ask(text, yes) {
 function newTrail(slot) {
   const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
   openGame(game.newProfile(app.content, seed, slot));
+}
+
+function toggleRider(id) {
+  const stop = app.profile.stop;
+  if (app.ui.convoy.includes(id)) app.ui.convoy = app.ui.convoy.filter((x) => x !== id);
+  else if (app.ui.convoy.length < Math.min(stop.setup.size, stop.queue.length)) app.ui.convoy.push(id);
+}
+
+function offer(keeper) {
+  if (!app.ui.basket) return toast(app.t('stop.basketEmpty'));
+  const action = { keeper, items: app.ui.basket };
+  app.ui.basket = 0;
+  dispatch({ type: 'ATTEMPT', action });
 }
 
 const actions = {
@@ -274,7 +324,7 @@ const actions = {
     const saved = readJson('daily', null);
     let doc = null;
     try {
-      if (saved && saved.doc && saved.doc.date === today()) doc = game.migrate(saved.doc, app.content);
+      if (saved && saved.doc && saved.doc.date === today() && saved.doc.schemaVersion === game.SCHEMA_VERSION) doc = saved.doc;
     } catch (e) {
       doc = null;
     }
@@ -333,11 +383,35 @@ const actions = {
   'start-leg': (el) => dispatch({ type: 'START_LEG', branch: el.dataset.branch }),
 
   tray(el) {
-    app.ui.sel = app.ui.sel === el.dataset.id ? null : el.dataset.id;
+    const id = el.dataset.id;
+    // On the rails a tap adds a rider to the convoy, or takes it out again.
+    if (app.profile.stop.family === 'switch_run') toggleRider(id);
+    else app.ui.sel = app.ui.sel === id ? null : id;
     render();
   },
   target(el) {
-    if (app.ui.sel) dispatch({ type: 'ATTEMPT', id: app.ui.sel, target: el.dataset.target });
+    const stop = app.profile.stop;
+    const target = el.dataset.target;
+    if (target === 'rail') return;
+    if (app.ui.sel) dispatch({ type: 'ATTEMPT', action: { id: app.ui.sel, target } });
+    // Tapping a taken seat with nobody picked lifts whoever sits there.
+    else if (family(stop.family).kind === 'seat' && stop.extra.seats[Number(target.slice(1))]) dispatch({ type: 'ATTEMPT', action: { lift: target } });
+  },
+  item(el) {
+    app.ui.basket ^= 1 << Number(el.dataset.item);
+    render();
+  },
+  keeper: (el) => offer(Number(el.dataset.keeper)),
+  switch(el) {
+    app.ui.dirs[Number(el.dataset.switch)] ^= 1;
+    render();
+  },
+  launch() {
+    const action = { dirs: app.ui.dirs.slice(), convoy: app.ui.convoy.slice() };
+    app.ui.convoy = [];
+    dispatch({ type: 'ATTEMPT', action });
+    if (app.profile.stop && app.profile.stop.extra.dirs) app.ui.dirs = app.profile.stop.extra.dirs.slice();
+    render();
   },
   hint: () => dispatch({ type: 'HINT' }),
   pause() {
@@ -447,13 +521,15 @@ function targetAt(x, y) {
 }
 
 root.addEventListener('pointerdown', (e) => {
-  const el = e.target.closest('.kin');
+  const el = e.target.closest('.kin, .basket');
   if (!el || !e.isPrimary || e.button > 0) return;
   endDrag();
-  const canDrag = el.classList.contains('tray-kin') && app.profile && app.profile.stop && app.profile.stop.status === 'playing';
-  drag = { id: el.dataset.id, el, x: e.clientX, y: e.clientY, canDrag, ghost: null, over: null, pointer: e.pointerId };
+  const playing = app.profile && app.profile.stop && app.profile.stop.status === 'playing';
+  const basket = el.classList.contains('basket');
+  const canDrag = playing && (basket ? app.ui.basket > 0 : el.classList.contains('tray-kin'));
+  drag = { id: el.dataset.id, basket, el, x: e.clientX, y: e.clientY, canDrag, ghost: null, over: null, pointer: e.pointerId };
   drag.timer = setTimeout(() => {
-    if (!drag || drag.ghost) return;
+    if (!drag || drag.ghost || drag.basket) return;
     const id = drag.id;
     endDrag();
     suppressClick = true;
@@ -470,7 +546,7 @@ window.addEventListener('pointermove', (e) => {
     clearTimeout(drag.timer);
     if (!drag.canDrag) return endDrag();
     drag.ghost = drag.el.cloneNode(true);
-    drag.ghost.className = 'kin ghost';
+    drag.ghost.className = (drag.basket ? 'basket' : 'kin') + ' ghost';
     document.body.appendChild(drag.ghost);
     drag.el.classList.add('lifted');
   }
@@ -489,14 +565,19 @@ window.addEventListener('pointerup', (e) => {
   setTimeout(() => (suppressClick = false), 60);
   if (!drag || e.pointerId !== drag.pointer) return;
   const dragged = !!drag.ghost;
-  const id = drag.id;
-  const el = drag.el;
+  const { id, el, basket } = drag;
   endDrag();
   if (!dragged) return;
   suppressClick = true;
   el.classList.remove('lifted');
   const over = targetAt(e.clientX, e.clientY);
-  if (over) dispatch({ type: 'ATTEMPT', id, target: over.dataset.target });
+  if (!over) return;
+  if (basket) {
+    if (over.dataset.keeper !== undefined) offer(Number(over.dataset.keeper));
+  } else if (app.profile.stop.family === 'switch_run') {
+    if (over.dataset.target === 'rail' && !app.ui.convoy.includes(id)) toggleRider(id);
+    render();
+  } else dispatch({ type: 'ATTEMPT', action: { id, target: over.dataset.target } });
 });
 
 window.addEventListener('pointercancel', () => {

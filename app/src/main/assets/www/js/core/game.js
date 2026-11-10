@@ -11,7 +11,7 @@ import { hashSeed } from './rng.js';
 import { buildRoster } from './traits.js';
 import * as runtime from './runtime.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const newStats = () => ({ stopsSolved: 0, flawlessStops: 0, legsCleared: 0, fullParties: 0, delivered: 0, rescued: 0, branchesSeen: 0, legsWithoutHints: 0 });
 
@@ -42,6 +42,36 @@ const MIGRATIONS = {
     assist: { window: [], suggest: null },
     options: { assist: true },
   }),
+  // v2 had four legs (camps 0 to 4). v3 has three legs of twelve different
+  // Stops (camps 0 to 3): the old third camp folds into camp 2 and the old
+  // last leg becomes leg 3. A Stop in progress is abandoned safely.
+  2: (doc) => {
+    if (doc.kind !== 'trail') return { ...doc, schemaVersion: 3 };
+    const camp = (c) => [0, 1, 2, 2, 3][c];
+    const seen = Object.fromEntries(Object.entries(doc.seen).filter(([key]) => /^leg[12]:/.test(key)));
+    return {
+      ...doc,
+      schemaVersion: 3,
+      screen: doc.screen === 'roster' ? 'roster' : 'map',
+      roster: doc.roster.map((c) => {
+        const out = { ...c, status: c.status === 'party' ? 'available' : c.status, at: camp(c.at) };
+        if (c.status === 'lost') {
+          out.lostAt = camp(c.lostAt);
+          out.at = Math.min(out.at, out.lostAt - 1);
+        }
+        return out;
+      }),
+      camp: camp(doc.camp),
+      selection: [],
+      run: null,
+      stop: null,
+      summary: null,
+      legs: { leg1: doc.legs.leg1, leg2: doc.legs.leg2, leg3: doc.legs.leg4 },
+      seen,
+      stats: { ...doc.stats, branchesSeen: Object.keys(seen).length },
+      assist: { window: [], suggest: null },
+    };
+  },
 };
 
 export class FutureSaveError extends Error {}
@@ -59,7 +89,9 @@ export function migrate(doc, content) {
   }
   // Legs added by newer content packs get default state.
   if (out.kind === 'trail' && content.trail.legs.some((l) => !out.legs[l.id])) {
-    out = { ...out, legs: { ...newLegs(content), ...out.legs } };
+    const legs = newLegs(content);
+    for (const id of Object.keys(legs)) if (out.legs[id]) legs[id] = out.legs[id];
+    out = { ...out, legs };
   }
   return out;
 }
@@ -275,7 +307,7 @@ function reduceInner(profile, ev, content) {
     // ---- Shared by Trail and daily Stops ----
     case 'ATTEMPT': {
       if (!profile.stop) return none;
-      const r = runtime.attempt(profile.stop, stopCtx(profile, content), ev.id, ev.target);
+      const r = runtime.attempt(profile.stop, stopCtx(profile, content), ev.action || { id: ev.id, target: ev.target });
       return { profile: { ...profile, stop: r.state }, events: r.events };
     }
     case 'HINT': {

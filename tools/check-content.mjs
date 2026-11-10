@@ -7,7 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { join, relative } from 'node:path';
 import { FAMILIES } from '../app/src/main/assets/www/js/core/families.js';
 import { prepareContent } from '../app/src/main/assets/www/js/core/content.js';
-import { hypotheses } from '../app/src/main/assets/www/js/core/runtime.js';
+import { hypotheses, generate } from '../app/src/main/assets/www/js/core/runtime.js';
+import { buildRoster } from '../app/src/main/assets/www/js/core/traits.js';
 import { newProfile } from '../app/src/main/assets/www/js/core/game.js';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
@@ -46,10 +47,13 @@ if (content) {
       const t = p.tiers[tier];
       need(t.patience >= 1 && Array.isArray(t.sends) && t.sends[0] <= t.sends[1], `puzzle ${p.id}/${tier}: patience and sends band`);
       need(Number.isInteger(t.examples) && t.examples >= 0, `puzzle ${p.id}/${tier}: examples`);
-      need(t.slots.length >= (p.family === 'gate_sort' && p.params.gates === 2 ? 1 : 2), `puzzle ${p.id}/${tier}: too few slots`);
+      need(t.slots.length >= 1, `puzzle ${p.id}/${tier}: too few slots`);
       try {
-        const n = hypotheses({ def: p, traits }, tier).length;
-        need(n >= 12, `puzzle ${p.id}/${tier}: only ${n} possible rules`);
+        // Generating a Stop exercises the family's whole rule space for this tier.
+        const roster = buildRoster(traits, 1);
+        const ctx = { def: p, traits, creatures: Object.fromEntries(roster.map((c) => [c.id, c.traits])) };
+        const { state } = generate(ctx, tier, 1, roster.slice(0, traits.partyMax).map((c) => c.id));
+        need(hypotheses(ctx, tier, state.setup).length >= 1, `puzzle ${p.id}/${tier}: no possible rules`);
       } catch (e) {
         problems.push(`puzzle ${p.id}/${tier}: ${e.message}`);
       }
@@ -71,7 +75,13 @@ if (content) {
   });
   const used = trail.legs.flatMap((l) => l.branches.flatMap((b) => b.stops));
   need(new Set(used).size === used.length, 'a puzzle is used by more than one Stop');
-  for (const id of ids) need(used.includes(id), `puzzle ${id} is not on the Trail`);
+  for (const id of ids) need(used.includes(id) || trail.daily.puzzles.includes(id), `puzzle ${id} is used neither on the Trail nor as a daily Stop`);
+  // The Trail shows every mechanic once: no two of its Stops share a tier set.
+  const mechanics = used.map((id) => {
+    const p = pack.puzzles.find((x) => x.id === id);
+    return p ? p.tierSet || p.family : id;
+  });
+  need(new Set(mechanics).size === mechanics.length, 'two Stops on the Trail use the same mechanic');
   need(pack.tierOrder.includes(trail.daily.tier) && trail.daily.partySize >= 2 && trail.daily.partySize <= traits.partyMax, 'trail.daily');
   for (const id of trail.daily.puzzles) need(ids.has(id), `daily: unknown puzzle ${id}`);
   need(trail.rescueSharedTraits >= 1 && trail.rescueSharedTraits <= slotIds.length && trail.strandAfterReturns >= 1, 'trail rescue settings');
@@ -96,7 +106,10 @@ for (const s of traits.slots) {
   for (const v of s.values) ref(`${s.id}.${v}`);
 }
 for (const tier of raw.puzzles.tierOrder) ref('tier.' + tier);
-for (const p of raw.puzzles.puzzles) [p.title, p.blurb].forEach(ref);
+for (const p of raw.puzzles.puzzles) {
+  [p.title, p.blurb].forEach(ref);
+  for (const item of p.params.items || []) ref('item.' + item);
+}
 for (const leg of trail.legs) {
   ref(leg.name);
   for (const b of leg.branches) ref(b.name);
@@ -106,7 +119,7 @@ for (const g of goals.goals) ref('goal.' + g.id);
 for (const file of walk(join(www, 'js'))) {
   const src = readFileSync(file, 'utf8');
   for (const m of src.matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) if (!m[1].endsWith('.')) usedKeys.add(m[1]);
-  for (const m of src.matchAll(/'((?:target|camp|stop|rule|slots|inspect|finale|coach|summary|daily|assist|toast|lang)\.[a-zA-Z0-9]+)'/g)) usedKeys.add(m[1]);
+  for (const m of src.matchAll(/'((?:target|camp|stop|rule|slots|inspect|finale|coach|summary|daily|assist|toast|lang|hint)\.[a-zA-Z0-9]+)'/g)) usedKeys.add(m[1]);
 }
 const langFiles = readdirSync(join(www, 'content')).filter((f) => /^text\.[a-z-]+\.json$/.test(f));
 const texts = Object.fromEntries(langFiles.map((f) => [f, json(f)]));

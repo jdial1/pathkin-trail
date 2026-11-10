@@ -19,7 +19,7 @@ function checkInvariants(p) {
     if (x.status === 'lost') assert.ok(x.lostAt > x.at && x.lostAt <= HOME);
   }
   const partyCount = p.roster.filter((x) => x.status === 'party').length;
-  if (p.stop) assert.equal(partyCount, p.stop.queue.length + Object.keys(p.stop.placed).length);
+  if (p.stop) assert.equal(partyCount, p.stop.queue.length + p.stop.held.length + Object.keys(p.stop.placed).length);
   else assert.equal(partyCount, 0);
   for (const id of p.selection) {
     const x = p.roster.find((y) => y.id === id);
@@ -46,14 +46,13 @@ function driver(seed, { roundTrip = false } = {}) {
       if (d.p.stop.status === 'playing') {
         const bot = botFor(); // may spend a hint, which can itself end the Stop
         if (d.p.stop.status !== 'playing') continue;
-        const [id, target] = bot(d.p.stop, game.stopCtx(d.p, content), d.rng);
-        d.send({ type: 'ATTEMPT', id, target });
+        const before = d.p;
+        d.send({ type: 'ATTEMPT', action: bot(d.p.stop, game.stopCtx(d.p, content), d.rng) });
+        assert.notEqual(d.p, before, 'bot made an illegal move');
       } else d.send({ type: 'STOP_CONTINUE' });
     }
     assert.equal(d.p.screen, 'summary');
   };
-  // Always sends each creature where it belongs (peeks at the hidden rule).
-  d.perfect = (stop, ctx) => [stop.queue[0], family(stop.family).place(stop.hyp, ctx.creatures[stop.queue[0]])];
   // Sends waiting creatures to wrong targets until patience runs out. Needs a
   // big party on a hard tier: with few creatures a miss can reveal the rule.
   d.failStop = () => {
@@ -83,6 +82,9 @@ function rescueAt(d, camp) {
 function scriptedRun(seed, opts) {
   const d = driver(seed, opts);
   const { rng } = d;
+  // Every fifth Trail is led by a careless player who mostly guesses, so
+  // that failed legs, stranding and rescue all really happen.
+  const clumsy = seed % 5 === 0;
   if (rng.int(2)) d.send({ type: 'REROLL' });
   d.send({ type: 'ROSTER_OK' });
   let legs = 0;
@@ -90,7 +92,7 @@ function scriptedRun(seed, opts) {
     legs++;
     for (let camp = 1; camp <= HOME; camp++) if (game.strandedAt(d.p, camp).length) rescueAt(d, camp);
     if (d.p.screen === 'finale') break;
-    const camp = [0, 1, 2, 3].find((n) => game.readyAt(d.p, n).length > 0);
+    const camp = content.trail.legs.map((l) => l.from).find((n) => game.readyAt(d.p, n).length > 0);
     if (camp === undefined) {
       // Only parked or stranded creatures remain: wake the parked ones.
       for (const x of d.p.roster.filter((y) => y.status === 'parked')) d.send({ type: 'RETRIEVE', id: x.id });
@@ -108,7 +110,7 @@ function scriptedRun(seed, opts) {
     assert.equal(d.p.screen, 'stop');
     d.playLeg(() => {
       if (d.p.stop.status === 'playing' && rng.int(12) === 0) d.send({ type: 'HINT' });
-      return d.p.stop.status === 'playing' && rng.int(5) === 0 ? bots.random : bots.optimal;
+      return d.p.stop.status === 'playing' && rng.int(clumsy ? 3 : 5) < (clumsy ? 2 : 1) ? bots.random : bots.optimal;
     });
     d.send({ type: 'SUMMARY_OK' });
   }
@@ -126,8 +128,8 @@ test('100 scripted Trails: no crash, statuses stay valid, everyone can always be
     stranded += log.filter((e) => e === 'stranded').length;
     assert.ok(p.goals.all_home && p.goals.first_leg);
   }
-  // Both branches of both forks get played, and stranding really happens.
-  assert.equal(seen.size, 6);
+  // Every leg and both branches of the fork get played, and stranding really happens.
+  assert.equal(seen.size, 4);
   assert.ok(stranded > 0, 'no creature was ever stranded, rescue path untested');
 });
 
@@ -169,20 +171,21 @@ test('legs chain through camps; forks need a valid branch; party comes from the 
   d.send({ type: 'START_LEG', branch: 'b' });
   assert.equal(d.p.stop.puzzleId, content.trail.legs[1].branches[1].stops[0]);
   d.playLeg();
+  assert.equal(d.p.summary.home, false);
   d.send({ type: 'SUMMARY_OK' });
-  for (const n of [2, 3]) {
-    assert.equal(d.p.camp, n);
-    d.send({ type: 'PARTY_FILL' });
-    d.send({ type: 'START_LEG' });
-    d.playLeg();
-    assert.equal(d.p.summary.home, n === 3);
-    d.send({ type: 'SUMMARY_OK' });
-  }
+  assert.equal(d.p.camp, 2);
+  d.send({ type: 'PARTY_FILL' });
+  d.send({ type: 'START_LEG' });
+  d.playLeg();
+  assert.equal(d.p.summary.home, true);
+  d.send({ type: 'SUMMARY_OK' });
   assert.ok(game.countStatus(d.p, 'delivered') > 0);
   assert.equal(d.p.camp, HOME);
   d.send({ type: 'GOTO', screen: 'party' });
   assert.notEqual(d.p.screen, 'party', 'no leg leaves home');
-  assert.ok(d.p.stats.legsCleared >= 4 && d.p.goals.first_home);
+  assert.ok(d.p.stats.legsCleared >= 3 && d.p.goals.first_home);
+  // Nine Stops were played: three per leg.
+  assert.ok(d.p.stats.stopsSolved <= 9);
 });
 
 test('failing a Stop three times strands a creature; a friend, a token or a free call brings it back', () => {
@@ -312,7 +315,7 @@ test('adaptive assist: free hint after two failed Stops, tier-up offer after thr
   d.send({ type: 'ROSTER_OK' });
   d.send({ type: 'PARTY_FILL' });
   d.send({ type: 'START_LEG' });
-  d.playLeg(() => d.perfect);
+  d.playLeg(() => bots.perfect);
   assert.equal(d.p.summary.flawlessStops, 3);
   assert.ok(d.log.includes('assist'));
   assert.equal(d.p.assist.suggest, 'leg1');
@@ -326,7 +329,7 @@ test('adaptive assist: free hint after two failed Stops, tier-up offer after thr
   e.send({ type: 'SET_TIER', legId: 'leg1', tier: 'expert' });
   e.send({ type: 'PARTY_FILL' });
   e.send({ type: 'START_LEG' });
-  e.playLeg(() => e.perfect);
+  e.playLeg(() => bots.perfect);
   assert.equal(e.p.assist.suggest, null);
 });
 
@@ -386,8 +389,7 @@ test('daily Stop: same date same puzzle, different dates differ, and it can be f
     assert.equal(p.stop.tier, content.trail.daily.tier);
     const rng = makeRng(date);
     while (p.stop.status === 'playing') {
-      const [id, target] = bots.optimal(p.stop, game.stopCtx(p, content), rng);
-      p = game.reduce(p, { type: 'ATTEMPT', id, target }, content).profile;
+      p = game.reduce(p, { type: 'ATTEMPT', action: bots.optimal(p.stop, game.stopCtx(p, content), rng) }, content).profile;
       p = game.migrate(JSON.parse(JSON.stringify(p)), content);
     }
     p = game.reduce(p, { type: 'STOP_CONTINUE' }, content).profile;
@@ -405,7 +407,7 @@ test('golden saves: version 1 saves migrate, keep nicknames, and play on', () =>
     assert.equal(old.schemaVersion, 1);
     let p = game.migrate(old, content);
     checkInvariants(p);
-    assert.equal(p.schemaVersion, 2);
+    assert.equal(p.schemaVersion, game.SCHEMA_VERSION);
     assert.equal(p.screen, 'map');
     assert.equal(p.run, null);
     assert.equal(p.stop, null);
@@ -427,6 +429,48 @@ test('golden saves: version 1 saves migrate, keep nicknames, and play on', () =>
     assert.equal(p.screen, 'stop');
     checkInvariants(p);
   }
+});
+
+test('golden saves: a version 2 save (four legs) folds into the three-leg Trail and plays on', () => {
+  const old = golden('save-v2-midstop');
+  assert.equal(old.schemaVersion, 2);
+  const count = (doc, fn) => doc.roster.filter(fn).length;
+  let p = game.migrate(old, content);
+  checkInvariants(p);
+  assert.equal(p.schemaVersion, game.SCHEMA_VERSION);
+  assert.deepEqual(Object.keys(p.legs), ['leg1', 'leg2', 'leg3']);
+  assert.deepEqual(p.legs.leg3, old.legs.leg4, 'the old last leg keeps its tier and history');
+  assert.equal(p.run, null);
+  assert.equal(p.stop, null);
+  // Nobody is lost or moved backwards: home stays home, the old third camp
+  // and the party that was mid-leg from it now wait at camp 2.
+  assert.equal(game.countStatus(p, 'delivered'), count(old, (x) => x.status === 'delivered'));
+  assert.equal(count(p, (x) => x.at === 2 && x.status === 'available'), count(old, (x) => (x.at === 2 || x.at === 3) && ['available', 'party'].includes(x.status)));
+  assert.equal(count(p, (x) => x.at === 0), count(old, (x) => x.at === 0));
+  assert.equal(game.countStatus(p, 'parked'), 1);
+  assert.equal(p.roster.length, old.roster.length);
+  const lost = p.roster.find((x) => x.status === 'lost');
+  assert.ok(lost && lost.lostAt === 2 && lost.at === 1, 'a stranded creature stays recoverable at a real camp');
+  assert.ok(p.roster.some((x) => x.nickname === 'Moss'));
+  assert.equal(p.hintTokens, old.hintTokens);
+  assert.deepEqual(p.goals, old.goals);
+  assert.equal(p.stats.branchesSeen, Object.keys(p.seen).length);
+  // The migrated Trail can be finished.
+  const d = driver(1);
+  d.p = p;
+  for (let legs = 0; legs < 200 && game.countStatus(d.p, 'delivered') < d.p.roster.length; legs++) {
+    for (let camp = 1; camp <= HOME; camp++) if (game.strandedAt(d.p, camp).length) rescueAt(d, camp);
+    if (d.p.screen === 'finale') break;
+    for (const x of d.p.roster.filter((y) => y.status === 'parked')) d.send({ type: 'RETRIEVE', id: x.id });
+    const camp = content.trail.legs.map((l) => l.from).find((n) => game.readyAt(d.p, n).length > 0);
+    if (camp === undefined) continue;
+    d.send({ type: 'SELECT_CAMP', camp });
+    d.send({ type: 'PARTY_FILL' });
+    d.send({ type: 'START_LEG' });
+    d.playLeg();
+    d.send({ type: 'SUMMARY_OK' });
+  }
+  assert.equal(game.countStatus(d.p, 'delivered'), d.p.roster.length);
 });
 
 test('saves: current version is untouched; future versions and junk are refused', () => {

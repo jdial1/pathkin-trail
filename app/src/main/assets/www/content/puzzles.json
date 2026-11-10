@@ -1,5 +1,5 @@
 {
- "packVersion": 2,
+ "packVersion": 3,
  "tierOrder": [
   "gentle",
   "steady",
@@ -10,28 +10,28 @@
   "gentle": {
    "patience": 8,
    "sends": [
-    2,
+    1,
     12
    ]
   },
   "steady": {
    "patience": 5,
    "sends": [
-    2,
+    1,
     12
    ]
   },
   "hard": {
    "patience": 4,
    "sends": [
-    2,
+    1,
     13
    ]
   },
   "expert": {
    "patience": 3,
    "sends": [
-    2,
+    1,
     14
    ]
   }
@@ -181,6 +181,37 @@
     "examples": 6
    }
   },
+  "room_grid": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [
+     "half"
+    ],
+    "examples": 3
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [
+     "half"
+    ],
+    "examples": 4
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "half"
+    ],
+    "examples": 6
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "half",
+     "has"
+    ],
+    "examples": 8
+   }
+  },
   "tour_path": {
    "gentle": {
     "slotCount": 2,
@@ -210,25 +241,366 @@
     ],
     "examples": 9
    }
+  },
+  "rank_line": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [],
+    "examples": 1
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [],
+    "examples": 2
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [],
+    "examples": 3
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "examples": 4
+   }
+  },
+  "totem_match": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [],
+    "examples": 2
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [],
+    "examples": 3
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "pairHalf"
+    ],
+    "examples": 4
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "pairHalf"
+    ],
+    "examples": 6
+   }
+  },
+  "toss_plot": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [],
+    "examples": 1
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [],
+    "examples": 2
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [],
+    "examples": 3
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "examples": 4
+   }
+  },
+  "bench_link": {
+   "gentle": {
+    "slotCount": 5,
+    "forms": [],
+    "setSizes": [
+     5
+    ],
+    "examples": 3,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 5,
+    "forms": [],
+    "setSizes": [
+     3
+    ],
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 5,
+    "forms": [],
+    "setSizes": [
+     2
+    ],
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "setSizes": [
+     2,
+     3
+    ],
+    "examples": 6,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "link_web": {
+   "gentle": {
+    "slotCount": 3,
+    "forms": [],
+    "kinds": 2,
+    "examples": 4,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 4,
+    "forms": [],
+    "kinds": 3,
+    "examples": 4,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 5,
+    "forms": [],
+    "kinds": 3,
+    "examples": 5,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "kinds": 4,
+    "examples": 8,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "trade_ledger": {
+   "gentle": {
+    "slotCount": 5,
+    "forms": [],
+    "items": 5,
+    "keepers": 1,
+    "examples": 1,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 5,
+    "forms": [],
+    "items": 5,
+    "keepers": 2,
+    "examples": 3,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 5,
+    "forms": [],
+    "items": 6,
+    "keepers": 2,
+    "examples": 5,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "items": 6,
+    "keepers": 3,
+    "examples": 10,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "signal_guess": {
+   "gentle": {
+    "slotCount": 5,
+    "forms": [
+     "slots"
+    ],
+    "rounds": 3,
+    "reveal": 2,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 5,
+    "forms": [
+     "slots"
+    ],
+    "rounds": 3,
+    "reveal": 1,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 5,
+    "forms": [
+     "count"
+    ],
+    "rounds": 3,
+    "reveal": 1,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "count"
+    ],
+    "rounds": 4,
+    "reveal": 2,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "echo_match": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [
+     "perm"
+    ],
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 5,
+    "forms": [
+     "perm"
+    ],
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 3,
+    "forms": [
+     "perm",
+     "mixed"
+    ],
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "perm",
+     "mixed"
+    ],
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "switch_run": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [],
+    "hidden": 1,
+    "convoy": 2,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 2,
+    "forms": [],
+    "hidden": 2,
+    "convoy": 3,
+    "examples": 0,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 3,
+    "forms": [],
+    "hidden": 2,
+    "convoy": 3,
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 3,
+    "forms": [],
+    "hidden": 3,
+    "convoy": 3,
+    "examples": 5,
+    "sends": [
+     1,
+     60
+    ]
+   }
   }
  },
  "puzzles": [
-  {
-   "id": "p_sort_gate_01",
-   "family": "gate_sort",
-   "title": "loc:p_sort_gate_01.title",
-   "blurb": "loc:family.gate_sort.blurb",
-   "params": {
-    "gates": 2
-   },
-   "slots": [
-    "crest",
-    "mark",
-    "feet",
-    "eyes",
-    "tint"
-   ]
-  },
   {
    "id": "p_bridge_pair_01",
    "family": "bridge_pair",
@@ -243,23 +615,6 @@
     "mark",
     "tint",
     "crest"
-   ]
-  },
-  {
-   "id": "p_pattern_grid_01",
-   "family": "pattern_grid",
-   "title": "loc:p_pattern_grid_01.title",
-   "blurb": "loc:family.pattern_grid.blurb",
-   "params": {
-    "rows": 2,
-    "cols": 2
-   },
-   "slots": [
-    "tint",
-    "crest",
-    "eyes",
-    "feet",
-    "mark"
    ]
   },
   {
@@ -279,8 +634,178 @@
    ]
   },
   {
+   "id": "p_trade_ledger_01",
+   "family": "trade_ledger",
+   "title": "loc:p_trade_ledger_01.title",
+   "blurb": "loc:family.trade_ledger.blurb",
+   "params": {
+    "items": [
+     "berry",
+     "nut",
+     "leaf",
+     "root",
+     "seed",
+     "cone"
+    ]
+   },
+   "slots": [
+    "crest",
+    "eyes",
+    "mark",
+    "feet",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_bench_link_01",
+   "family": "bench_link",
+   "title": "loc:p_bench_link_01.title",
+   "blurb": "loc:family.bench_link.blurb",
+   "params": {},
+   "slots": [
+    "crest",
+    "eyes",
+    "mark",
+    "feet",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_signal_guess_01",
+   "family": "signal_guess",
+   "title": "loc:p_signal_guess_01.title",
+   "blurb": "loc:family.signal_guess.blurb",
+   "params": {},
+   "slots": [
+    "crest",
+    "eyes",
+    "mark",
+    "feet",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_link_web_01",
+   "family": "link_web",
+   "title": "loc:p_link_web_01.title",
+   "blurb": "loc:family.link_web.blurb",
+   "params": {},
+   "slots": [
+    "eyes",
+    "mark",
+    "feet",
+    "tint",
+    "crest"
+   ]
+  },
+  {
+   "id": "p_totem_match_01",
+   "family": "totem_match",
+   "title": "loc:p_totem_match_01.title",
+   "blurb": "loc:family.totem_match.blurb",
+   "params": {},
+   "slots": [
+    "mark",
+    "crest",
+    "feet",
+    "eyes",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_room_grid_01",
+   "family": "pattern_grid",
+   "tierSet": "room_grid",
+   "title": "loc:p_room_grid_01.title",
+   "blurb": "loc:family.room_grid.blurb",
+   "params": {
+    "rows": 2,
+    "cols": 4
+   },
+   "slots": [
+    "tint",
+    "eyes",
+    "crest",
+    "feet",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_toss_plot_01",
+   "family": "toss_plot",
+   "title": "loc:p_toss_plot_01.title",
+   "blurb": "loc:family.toss_plot.blurb",
+   "params": {},
+   "slots": [
+    "crest",
+    "tint",
+    "feet",
+    "mark",
+    "eyes"
+   ]
+  },
+  {
+   "id": "p_rank_line_01",
+   "family": "rank_line",
+   "title": "loc:p_rank_line_01.title",
+   "blurb": "loc:family.rank_line.blurb",
+   "params": {},
+   "slots": [
+    "feet",
+    "mark",
+    "eyes",
+    "tint",
+    "crest"
+   ]
+  },
+  {
+   "id": "p_echo_match_01",
+   "family": "echo_match",
+   "title": "loc:p_echo_match_01.title",
+   "blurb": "loc:family.echo_match.blurb",
+   "params": {},
+   "slots": [
+    "crest",
+    "eyes",
+    "mark",
+    "feet",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_switch_run_01",
+   "family": "switch_run",
+   "title": "loc:p_switch_run_01.title",
+   "blurb": "loc:family.switch_run.blurb",
+   "params": {},
+   "slots": [
+    "crest",
+    "feet",
+    "eyes",
+    "mark",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_sort_gate_01",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_01.title",
+   "blurb": "loc:family.gate_sort.blurb",
+   "params": {
+    "gates": 2
+   },
+   "slots": [
+    "crest",
+    "mark",
+    "feet",
+    "eyes",
+    "tint"
+   ]
+  },
+  {
    "id": "p_sort_gate_02",
    "family": "gate_sort",
+   "tierSet": "gate_trio",
    "title": "loc:p_sort_gate_02.title",
    "blurb": "loc:family.gate_trio.blurb",
    "params": {
@@ -292,219 +817,23 @@
     "mark",
     "crest",
     "feet"
-   ],
-   "tierSet": "gate_trio"
-  },
-  {
-   "id": "p_bridge_pair_02",
-   "family": "bridge_pair",
-   "title": "loc:p_bridge_pair_02.title",
-   "blurb": "loc:family.bridge_pair.blurb",
-   "params": {
-    "bridges": 2
-   },
-   "slots": [
-    "crest",
-    "tint",
-    "eyes",
-    "mark",
-    "feet"
    ]
   },
   {
-   "id": "p_pattern_grid_02",
+   "id": "p_pattern_grid_01",
    "family": "pattern_grid",
-   "title": "loc:p_pattern_grid_02.title",
+   "title": "loc:p_pattern_grid_01.title",
    "blurb": "loc:family.pattern_grid.blurb",
    "params": {
     "rows": 2,
     "cols": 2
    },
    "slots": [
-    "mark",
-    "feet",
     "tint",
     "crest",
-    "eyes"
-   ]
-  },
-  {
-   "id": "p_tour_path_02",
-   "family": "tour_path",
-   "title": "loc:p_tour_path_02.title",
-   "blurb": "loc:family.tour_path.blurb",
-   "params": {
-    "forks": 2
-   },
-   "slots": [
     "eyes",
-    "mark",
-    "crest",
     "feet",
-    "tint"
-   ]
-  },
-  {
-   "id": "p_sort_gate_03",
-   "family": "gate_sort",
-   "title": "loc:p_sort_gate_03.title",
-   "blurb": "loc:family.gate_sort.blurb",
-   "params": {
-    "gates": 2
-   },
-   "slots": [
-    "tint",
-    "feet",
-    "eyes",
-    "crest",
     "mark"
-   ]
-  },
-  {
-   "id": "p_bridge_pair_03",
-   "family": "bridge_pair",
-   "title": "loc:p_bridge_pair_03.title",
-   "blurb": "loc:family.bridge_pair.blurb",
-   "params": {
-    "bridges": 2
-   },
-   "slots": [
-    "mark",
-    "crest",
-    "feet",
-    "eyes",
-    "tint"
-   ]
-  },
-  {
-   "id": "p_pattern_grid_03",
-   "family": "pattern_grid",
-   "title": "loc:p_pattern_grid_03.title",
-   "blurb": "loc:family.pattern_grid.blurb",
-   "params": {
-    "rows": 2,
-    "cols": 2
-   },
-   "slots": [
-    "eyes",
-    "feet",
-    "crest",
-    "tint",
-    "mark"
-   ]
-  },
-  {
-   "id": "p_tour_path_03",
-   "family": "tour_path",
-   "title": "loc:p_tour_path_03.title",
-   "blurb": "loc:family.tour_path.blurb",
-   "params": {
-    "forks": 2
-   },
-   "slots": [
-    "tint",
-    "mark",
-    "eyes",
-    "crest",
-    "feet"
-   ]
-  },
-  {
-   "id": "p_sort_gate_04",
-   "family": "gate_sort",
-   "title": "loc:p_sort_gate_04.title",
-   "blurb": "loc:family.gate_trio.blurb",
-   "params": {
-    "gates": 3
-   },
-   "slots": [
-    "feet",
-    "crest",
-    "tint",
-    "mark",
-    "eyes"
-   ],
-   "tierSet": "gate_trio"
-  },
-  {
-   "id": "p_tour_path_04",
-   "family": "tour_path",
-   "title": "loc:p_tour_path_04.title",
-   "blurb": "loc:family.tour_path.blurb",
-   "params": {
-    "forks": 2
-   },
-   "slots": [
-    "crest",
-    "eyes",
-    "feet",
-    "mark",
-    "tint"
-   ]
-  },
-  {
-   "id": "p_bridge_pair_04",
-   "family": "bridge_pair",
-   "title": "loc:p_bridge_pair_04.title",
-   "blurb": "loc:family.bridge_pair.blurb",
-   "params": {
-    "bridges": 2
-   },
-   "slots": [
-    "tint",
-    "feet",
-    "crest",
-    "eyes",
-    "mark"
-   ]
-  },
-  {
-   "id": "p_pattern_grid_04",
-   "family": "pattern_grid",
-   "title": "loc:p_pattern_grid_04.title",
-   "blurb": "loc:family.pattern_grid.blurb",
-   "params": {
-    "rows": 2,
-    "cols": 2
-   },
-   "slots": [
-    "crest",
-    "mark",
-    "tint",
-    "eyes",
-    "feet"
-   ]
-  },
-  {
-   "id": "p_tour_path_05",
-   "family": "tour_path",
-   "title": "loc:p_tour_path_05.title",
-   "blurb": "loc:family.tour_path.blurb",
-   "params": {
-    "forks": 2
-   },
-   "slots": [
-    "mark",
-    "tint",
-    "feet",
-    "eyes",
-    "crest"
-   ]
-  },
-  {
-   "id": "p_sort_gate_05",
-   "family": "gate_sort",
-   "title": "loc:p_sort_gate_05.title",
-   "blurb": "loc:family.gate_sort.blurb",
-   "params": {
-    "gates": 2
-   },
-   "slots": [
-    "mark",
-    "eyes",
-    "crest",
-    "tint",
-    "feet"
    ]
   }
  ]

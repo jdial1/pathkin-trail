@@ -225,3 +225,67 @@ input[type="text"] { user-select: text; -webkit-user-select: text; }
 .goals .tick { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink); text-align: center; font: 700 16px/24px var(--ui); flex: 0 0 auto; }
 .goals li.done .tick { background: var(--accent); color: var(--accent-ink); }
 span.kin { min-width: 48px; min-height: 52px; }
+
+/* ---- Boards for the twelve puzzle types ---- */
+.targets.n1 { grid-template-columns: 1fr; }
+.targets { flex: 0 1 auto; }
+.stop .targets.n2:only-child, .stop .body > .targets.n2 { flex: 1 1 auto; }
+.target.dense { padding: 3px; min-height: 62px; gap: 2px; }
+.target.dense .target-head { display: none; }
+.target.dense .minis.bounced { padding-top: 2px; }
+.kin.mini { min-width: 0; min-height: 0; }
+.targets.n4 .kin.mini, .target.dense .kin.mini { padding: 0; }
+.glyph { font-size: 1.7rem; line-height: 1; }
+.ends { display: flex; justify-content: space-between; margin: 0 4px 2px; font-weight: 700; }
+
+/* Seats and the links between them */
+.seats { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr 22px 1fr; gap: 2px; align-items: center; justify-items: center; }
+.seat { width: 100%; min-height: 58px; display: flex; align-items: center; justify-content: center; background: var(--card); border: 3px dashed var(--ink); border-radius: 12px; }
+.seat.taken { border-style: solid; }
+.seat.over, .target.rail.over { background: #e8f1dc; border-color: var(--accent); }
+.seat.no { animation: no 0.45s; }
+.seat.yes { animation: yes 0.5s; }
+.link { display: block; width: 20px; height: 16px; border-radius: 4px; color: #fff; font: 700 12px/16px var(--ui); text-align: center; }
+.link.none { visibility: hidden; }
+.link.k0 { background: var(--ink); }
+.link.k1 { background: repeating-linear-gradient(45deg, #a8532c 0 4px, #6e3318 4px 8px); }
+.link.k2 { background: #2f6f73; outline: 2px dotted #2f6f73; outline-offset: 1px; }
+.link.k3 { background: #4f5a94; border-radius: 8px; }
+.link.bad { box-shadow: 0 0 0 3px var(--bad); }
+
+/* Picky keepers */
+.keeper { min-height: 84px; }
+.keeper.fed { opacity: 0.6; border-style: solid; }
+.offer { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; }
+.offer b { margin-left: 4px; }
+.offer.bad b { color: var(--bad); }
+.offer.yes b { color: var(--accent); }
+.food { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+.basket { display: flex; align-items: center; gap: 6px; min-height: 48px; margin: 8px 0; padding: 4px 12px; background: var(--card); border: 2px dashed var(--ink); border-radius: 12px; touch-action: none; }
+.basket.ghost { position: fixed; left: 0; top: 0; z-index: 50; margin: 0; pointer-events: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { flex: 1 1 28%; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 4px 8px; font: 600 1rem var(--ui); color: var(--ink); background: var(--card); border: 2px solid var(--ink); border-radius: 12px; }
+.chip.on { background: var(--accent); color: var(--accent-ink); }
+
+/* Signal stone and pond */
+.target.stone, .target.pond { min-height: 150px; align-items: center; border-radius: 28px; }
+.carved { display: flex; justify-content: center; gap: 16px; }
+.carved span { display: flex; flex-direction: column; align-items: center; }
+.try { display: flex; align-items: center; gap: 8px; align-self: stretch; }
+.mark { font-style: normal; font-size: 1.3rem; margin: 0 3px; }
+.mark.hit { color: var(--accent); }
+.refl svg { transform: scaleY(-1); opacity: 0.8; filter: saturate(0.7); }
+.refl.big { display: flex; justify-content: center; }
+.pairs { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; }
+.pair { display: flex; align-items: center; gap: 2px; }
+
+/* Rail switches */
+.target.shed { min-height: 74px; padding: 4px 2px; align-items: center; border-style: solid; }
+.rails { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 8px 0; }
+.rail-row { display: flex; justify-content: space-around; width: 100%; }
+.switch-btn { min-width: 84px; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 0 8px; font: 700 1.3rem var(--ui); color: var(--ink); background: var(--card); border: 2px solid var(--ink); border-radius: 12px; }
+.switch-btn .unknown { font-size: 1.4rem; }
+.target.rail { flex-direction: row; flex-wrap: wrap; align-items: center; min-height: 60px; gap: 8px; }
+.target.rail .minis { flex: 1; }
+.runs { margin-top: 6px; }
+.run { display: flex; align-items: center; gap: 3px; font-weight: 700; }

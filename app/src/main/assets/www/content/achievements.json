@@ -54,7 +54,7 @@
   {
    "id": "both_forks",
    "stat": "branchesSeen",
-   "atLeast": 6
+   "atLeast": 4
   },
   {
    "id": "no_hints_leg",
