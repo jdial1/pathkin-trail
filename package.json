@@ -1,0 +1,12 @@
+{
+  "name": "pathkin-trail",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "check-content": "node tools/check-content.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.65.0"
+  }
+}

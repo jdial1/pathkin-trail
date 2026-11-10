@@ -1,0 +1,116 @@
+{
+  "packVersion": 1,
+  "tierOrder": [
+    "gentle",
+    "steady"
+  ],
+  "puzzles": [
+    {
+      "id": "p_sort_gate_01",
+      "family": "gate_sort",
+      "title": "loc:p_sort_gate_01.title",
+      "blurb": "loc:p_sort_gate_01.blurb",
+      "params": {
+        "gates": 2
+      },
+      "tiers": {
+        "gentle": {
+          "slots": [
+            "crest",
+            "eyes",
+            "mark",
+            "feet",
+            "tint"
+          ],
+          "maxTerms": 1,
+          "patience": 8
+        },
+        "steady": {
+          "slots": [
+            "crest",
+            "mark",
+            "feet",
+            "eyes"
+          ],
+          "maxTerms": 2,
+          "patience": 5
+        }
+      },
+      "scoring": {
+        "deliverOnSuccess": true,
+        "penaltyOnFail": "return_to_camp"
+      }
+    },
+    {
+      "id": "p_bridge_pair_01",
+      "family": "bridge_pair",
+      "title": "loc:p_bridge_pair_01.title",
+      "blurb": "loc:p_bridge_pair_01.blurb",
+      "params": {
+        "bridges": 2
+      },
+      "tiers": {
+        "gentle": {
+          "slots": [
+            "eyes",
+            "feet",
+            "mark",
+            "tint"
+          ],
+          "maxTerms": 1,
+          "patience": 8
+        },
+        "steady": {
+          "slots": [
+            "crest",
+            "eyes",
+            "mark",
+            "feet",
+            "tint"
+          ],
+          "maxTerms": 1,
+          "patience": 5
+        }
+      },
+      "scoring": {
+        "deliverOnSuccess": true,
+        "penaltyOnFail": "return_to_camp"
+      }
+    },
+    {
+      "id": "p_pattern_grid_01",
+      "family": "pattern_grid",
+      "title": "loc:p_pattern_grid_01.title",
+      "blurb": "loc:p_pattern_grid_01.blurb",
+      "params": {
+        "rows": 2,
+        "cols": 2
+      },
+      "tiers": {
+        "gentle": {
+          "slots": [
+            "tint",
+            "crest",
+            "eyes"
+          ],
+          "maxTerms": 1,
+          "patience": 8
+        },
+        "steady": {
+          "slots": [
+            "tint",
+            "crest",
+            "eyes",
+            "feet"
+          ],
+          "maxTerms": 1,
+          "patience": 5
+        }
+      },
+      "scoring": {
+        "deliverOnSuccess": true,
+        "penaltyOnFail": "return_to_camp"
+      }
+    }
+  ]
+}

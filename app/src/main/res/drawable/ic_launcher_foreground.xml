@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Original placeholder mark: a round Pathkin with a tuft, wide eyes and paws. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M54,40 L46,28 M54,40 L54,25 M54,40 L62,28"
+        android:strokeColor="#3A2F28" android:strokeWidth="3" android:strokeLineCap="round" />
+    <path android:pathData="M39,76 a7,4.5 0 1,0 14,0 a7,4.5 0 1,0 -14,0 M55,76 a7,4.5 0 1,0 14,0 a7,4.5 0 1,0 -14,0"
+        android:fillColor="#F4EAD2" android:strokeColor="#3A2F28" android:strokeWidth="2.5" />
+    <path android:pathData="M32,57 a22,21 0 1,0 44,0 a22,21 0 1,0 -44,0"
+        android:fillColor="#E6C552" android:strokeColor="#3A2F28" android:strokeWidth="3" />
+    <path android:pathData="M37,54 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0 M57,54 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0"
+        android:fillColor="#FFFFFF" android:strokeColor="#3A2F28" android:strokeWidth="2" />
+    <path android:pathData="M42,54 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0 M62,54 a2,2 0 1,0 4,0 a2,2 0 1,0 -4,0"
+        android:fillColor="#3A2F28" />
+</vector>

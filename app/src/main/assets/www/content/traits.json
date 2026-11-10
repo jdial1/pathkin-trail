@@ -1,0 +1,12 @@
+{
+  "packVersion": 1,
+  "rosterSize": 36,
+  "partyMax": 16,
+  "slots": [
+    { "id": "crest", "values": ["tuft", "fin", "horn", "bare"] },
+    { "id": "eyes", "values": ["round", "slit", "wide", "lidded"] },
+    { "id": "mark", "values": ["dot", "stripe", "ring", "none"] },
+    { "id": "feet", "values": ["paws", "hooves", "webs", "roller"] },
+    { "id": "tint", "values": [0, 1, 2, 3] }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "packVersion": 1,
+  "palettes": {
+    "default": ["#8fb86a", "#d98c5f", "#8d86c9", "#e6c552"],
+    "coloursafe": ["#56b4e9", "#d55e00", "#f0e442", "#cc79a7"]
+  },
+  "themes": {
+    "meadow": { "accent": "#3f7d4e", "accentInk": "#ffffff", "paper": "#f6efdf", "sky": "#dcebd2" }
+  }
+}

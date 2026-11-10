@@ -1,0 +1,15 @@
+{
+  "packVersion": 1,
+  "hintTokenCap": 5,
+  "startHintTokens": 1,
+  "fullPartiesToRaiseTier": 3,
+  "legs": [
+    {
+      "id": "leg1",
+      "name": "loc:leg1.name",
+      "theme": "meadow",
+      "stops": ["p_sort_gate_01", "p_bridge_pair_01", "p_pattern_grid_01"],
+      "campAfter": "camp1"
+    }
+  ]
+}
