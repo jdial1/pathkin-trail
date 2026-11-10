@@ -2,12 +2,14 @@
 // event, renders the current screen and turns touches into game events.
 
 import * as game from '../core/game.js';
+import { prepareContent } from '../core/content.js';
+import { encodeCombo } from '../core/traits.js';
 import { storage } from './storage.js';
 import { bus, attachSenses } from './feedback.js';
 import * as view from './screens.js';
 
-const LANGUAGES = ['en'];
-const DEFAULT_SETTINGS = { audio: true, haptics: true, reducedMotion: false, colourSafe: false, textSize: 1, language: 'en' };
+const LANGUAGES = ['en', 'es'];
+const DEFAULT_SETTINGS = { audio: true, haptics: true, reducedMotion: false, colourSafe: false, assist: true, textSize: 1, language: 'en' };
 
 const root = document.getElementById('app');
 const toastEl = document.getElementById('toast');
@@ -19,7 +21,9 @@ const app = {
   profile: null,
   slots: [null, null, null],
   palette: [],
-  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'delivered', filter: {} },
+  book: new Set(), // trait combinations met so far, across all Trails
+  dailySolved: 0,
+  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'ready', filter: {} },
   t(key, vars) {
     let s = app.content.text[key];
     if (s === undefined) return key;
@@ -33,7 +37,7 @@ const app = {
 // ---- Content and storage ----------------------------------------------------
 
 async function loadContent(language) {
-  const names = { traits: 'traits.json', puzzles: 'puzzles.json', trail: 'trail.json', theme: 'theme.json', text: `text.${language}.json` };
+  const names = { traits: 'traits.json', puzzles: 'puzzles.json', trail: 'trail.json', theme: 'theme.json', goals: 'achievements.json', text: `text.${language}.json` };
   const out = {};
   await Promise.all(
     Object.entries(names).map(async ([key, file]) => {
@@ -42,7 +46,7 @@ async function loadContent(language) {
       out[key] = await res.json();
     })
   );
-  return out;
+  return prepareContent(out);
 }
 
 function readSlot(n) {
@@ -53,7 +57,7 @@ function readSlot(n) {
   for (const text of texts) {
     if (!text) continue;
     try {
-      return { profile: game.migrate(JSON.parse(text)) };
+      return { profile: game.migrate(JSON.parse(text), app.content) };
     } catch (e) {
       if (e instanceof game.FutureSaveError) return { error: 'future' };
       // fall through to the next rolling backup
@@ -67,7 +71,43 @@ function refreshSlots() {
 }
 
 function saveProfile() {
-  if (app.profile) storage.save('slot' + app.profile.slot, JSON.stringify(app.profile));
+  const p = app.profile;
+  if (!p) return;
+  if (p.kind === 'daily') storage.save('daily', JSON.stringify({ doc: p, solved: app.dailySolved }));
+  else storage.save('slot' + p.slot, JSON.stringify(p));
+}
+
+function readJson(key, fallback) {
+  try {
+    const text = storage.load(key);
+    return text ? JSON.parse(text) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+function addToBook(roster) {
+  const before = app.book.size;
+  for (const c of roster) app.book.add(encodeCombo(app.content.traits, c.traits));
+  if (app.book.size !== before) storage.save('book', JSON.stringify([...app.book]));
+}
+
+const today = () => {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+};
+
+// Each leg has its own accent; the chrome follows where the player is.
+function applyTheme() {
+  const p = app.profile;
+  const legs = app.content.trail.legs;
+  let leg = legs[0];
+  if (p && p.kind === 'trail' && app.ui.view === 'game') leg = (p.run && game.legDef(app.content, p.run.legId)) || legs[Math.min(p.camp, legs.length - 1)];
+  const theme = app.content.theme.themes[leg.theme];
+  const el = document.documentElement;
+  el.style.setProperty('--accent', theme.accent);
+  el.style.setProperty('--accent-ink', theme.accentInk);
+  el.style.setProperty('--paper', theme.paper);
 }
 
 function applySettings() {
@@ -77,20 +117,20 @@ function applySettings() {
   el.dataset.rm = s.reducedMotion ? '1' : '0';
   el.lang = s.language;
   app.palette = app.content.theme.palettes[s.colourSafe ? 'coloursafe' : 'default'];
-  const theme = app.content.theme.themes[app.content.trail.legs[0].theme];
-  el.style.setProperty('--accent', theme.accent);
-  el.style.setProperty('--accent-ink', theme.accentInk);
-  el.style.setProperty('--paper', theme.paper);
 }
 
 // ---- Store --------------------------------------------------------------------
 
 function dispatch(ev) {
+  const screen = app.profile.screen;
   const r = game.reduce(app.profile, ev, app.content);
   if (r.profile !== app.profile) {
-    app.profile = r.profile;
+    const p = (app.profile = r.profile);
+    // A daily Stop counts once, when its result is first recorded.
+    if (p.kind === 'daily' && ev.type === 'STOP_CONTINUE' && p.result && p.result.status === 'solved') app.dailySolved += 1;
     saveProfile();
   }
+  if (app.profile.screen !== screen) app.ui.inspect = null;
   if (app.profile.stop === null || !app.profile.stop.queue.includes(app.ui.sel)) app.ui.sel = null;
   render();
   for (const e of r.events) bus.emit(e);
@@ -98,11 +138,13 @@ function dispatch(ev) {
 
 function render() {
   const ui = app.ui;
+  applyTheme();
   let html;
   if (ui.view === 'title') html = view.titleView(app);
   else if (ui.view === 'slots') html = view.slotsView(app);
   else if (ui.view === 'credits') html = view.creditsView(app);
   else if (ui.view === 'settings') html = view.settingsView(app);
+  else if (ui.view === 'book') html = view.bookView(app);
   else html = view.gameView(app);
   if (ui.view === 'game') {
     if (ui.paused) html += view.pauseSheet(app);
@@ -114,6 +156,15 @@ function render() {
   const overlay = [ui.view, ui.paused, ui.inspect, !!ui.confirm, stop && stop.status].join('|');
   if (overlay === lastOverlay) for (const el of root.querySelectorAll('.scrim')) el.classList.add('still');
   lastOverlay = overlay;
+  // The Trail Map is taller than its window: keep the selected camp centred
+  // (a re-render would otherwise jump back to the top).
+  const on = root.querySelector('.campnode.on');
+  const body = root.querySelector('.mapbody');
+  if (on && body) {
+    const r = on.getBoundingClientRect();
+    const b = body.getBoundingClientRect();
+    body.scrollTop += r.top + r.height / 2 - (b.top + b.height / 2);
+  }
 }
 
 let lastOverlay = '';
@@ -138,8 +189,13 @@ bus.on((e) => {
   if (e.type === 'rejected') {
     flash(`[data-target="${e.target}"]`, 'no');
     const fb = e.fb;
-    toast(!('rowOk' in fb) ? app.t('stop.rejected') : fb.rowOk ? app.t('stop.rowOk') : fb.colOk ? app.t('stop.colOk') : app.t('stop.neither'));
+    toast('at' in fb ? app.t(fb.at === 0 ? 'stop.fork1' : 'stop.fork2') : !('rowOk' in fb) ? app.t('stop.rejected') : fb.rowOk ? app.t('stop.rowOk') : fb.colOk ? app.t('stop.colOk') : app.t('stop.neither'));
   }
+  if (e.type === 'stranded') toast(app.t('toast.stranded', { n: e.ids.length }));
+  if (e.type === 'rescued') toast(app.t('toast.rescued'));
+  if (e.type === 'rescueMiss') toast(app.t('toast.rescueMiss', { n: e.shared, need: app.content.trail.rescueSharedTraits }));
+  if (e.type === 'assist' && e.kind === 'freeHint') toast(app.t('assist.freeHint'));
+  if (e.type === 'goal') toast(app.t('toast.goal', { goal: app.t('goal.' + e.id) }));
   if (e.type === 'hint') {
     toast(e.noTokens ? app.t('stop.noHint') : e.slot ? app.t('stop.hintIs', { slot: app.t('slot.' + e.slot) }) : app.t('stop.noMoreHints'));
   }
@@ -149,7 +205,11 @@ bus.on((e) => {
 
 function openGame(profile) {
   app.profile = profile;
-  app.ui = { ...app.ui, view: 'game', sel: null, inspect: null, paused: false, filter: {}, campTab: 'delivered' };
+  app.ui = { ...app.ui, view: 'game', sel: null, inspect: null, paused: false, filter: {}, campTab: 'ready' };
+  if (profile.kind === 'trail') {
+    if (profile.options.assist !== app.settings.assist) app.profile = game.reduce(profile, { type: 'OPTION', assist: app.settings.assist }, app.content).profile;
+    if (profile.screen !== 'roster') addToBook(profile.roster);
+  }
   saveProfile();
   render();
 }
@@ -204,6 +264,22 @@ const actions = {
     });
   },
   'to-title': toTitle,
+  'open-book'() {
+    app.ui.view = 'book';
+    app.ui.filter = {};
+    render();
+  },
+  // One seeded Stop a day; a Stop already started today is resumed.
+  'open-daily'() {
+    const saved = readJson('daily', null);
+    let doc = null;
+    try {
+      if (saved && saved.doc && saved.doc.date === today()) doc = game.migrate(saved.doc, app.content);
+    } catch (e) {
+      doc = null;
+    }
+    openGame(doc || game.newDaily(app.content, today()));
+  },
   'open-credits'() {
     app.ui.view = 'credits';
     render();
@@ -228,12 +304,25 @@ const actions = {
   },
 
   reroll: () => dispatch({ type: 'REROLL' }),
-  'roster-ok': () => dispatch({ type: 'ROSTER_OK' }),
+  'roster-ok'() {
+    addToBook(app.profile.roster);
+    dispatch({ type: 'ROSTER_OK' });
+  },
+  'select-camp': (el) => dispatch({ type: 'SELECT_CAMP', camp: Number(el.dataset.camp) }),
+  'suggest-yes'() {
+    const leg = app.content.trail.legs[app.profile.camp];
+    const order = app.content.puzzles.tierOrder;
+    dispatch({ type: 'SET_TIER', legId: leg.id, tier: order[order.indexOf(app.profile.legs[leg.id].tier) + 1] });
+  },
+  'suggest-no': () => dispatch({ type: 'DISMISS_SUGGEST' }),
+  'rescue-friend': (el) => dispatch({ type: 'RESCUE', id: app.ui.inspect, friendId: el.dataset.id }),
+  'rescue-token': () => dispatch({ type: 'RESCUE', id: app.ui.inspect, token: true }),
+  'rescue-free': () => dispatch({ type: 'RESCUE', id: app.ui.inspect }),
   goto(el) {
     app.ui.filter = {};
     dispatch({ type: 'GOTO', screen: el.dataset.screen });
   },
-  'set-tier': (el) => dispatch({ type: 'SET_TIER', legId: app.content.trail.legs[0].id, tier: el.dataset.tier }),
+  'set-tier': (el) => dispatch({ type: 'SET_TIER', legId: app.content.trail.legs[app.profile.camp].id, tier: el.dataset.tier }),
   'end-trail'() {
     const n = app.profile.roster.length - game.countStatus(app.profile, 'delivered');
     ask(app.t('map.endConfirm', { n }), () => dispatch({ type: 'GOTO', screen: 'finale' }));
@@ -241,7 +330,7 @@ const actions = {
   'party-toggle': (el) => dispatch({ type: 'PARTY_TOGGLE', id: el.dataset.id }),
   'party-fill': () => dispatch({ type: 'PARTY_FILL', ids: view.filteredAvailable(app).map((c) => c.id) }),
   'party-clear': () => dispatch({ type: 'PARTY_CLEAR' }),
-  'start-leg': () => dispatch({ type: 'START_LEG', legId: app.content.trail.legs[0].id }),
+  'start-leg': (el) => dispatch({ type: 'START_LEG', branch: el.dataset.branch }),
 
   tray(el) {
     app.ui.sel = app.ui.sel === el.dataset.id ? null : el.dataset.id;
@@ -288,10 +377,15 @@ const actions = {
 };
 
 const changes = {
-  setting(el) {
+  async setting(el) {
     const key = el.dataset.key;
     app.settings[key] = el.type === 'checkbox' ? el.checked : key === 'textSize' ? Number(el.value) : el.value;
     storage.save('settings', JSON.stringify(app.settings));
+    if (key === 'language') app.content = await loadContent(app.settings.language);
+    if (key === 'assist' && app.profile && app.profile.kind === 'trail') {
+      app.profile = game.reduce(app.profile, { type: 'OPTION', assist: app.settings.assist }, app.content).profile;
+      saveProfile();
+    }
     applySettings();
     render();
   },
@@ -330,7 +424,7 @@ root.addEventListener('change', (e) => {
 root.addEventListener('keydown', (e) => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"]')) {
     e.preventDefault();
-    e.target.click();
+    e.target.dispatchEvent(new MouseEvent('click', { bubbles: true }));
   }
 });
 
@@ -417,13 +511,13 @@ window.pathkinBack = () => {
   if (ui.confirm) actions['confirm-no']();
   else if (ui.inspect) actions['close-inspect']();
   else if (ui.view === 'settings') actions['settings-back']();
-  else if (ui.view === 'slots' || ui.view === 'credits') toTitle();
+  else if (ui.view === 'slots' || ui.view === 'credits' || ui.view === 'book') toTitle();
   else if (ui.view === 'game') {
     const screen = app.profile.screen;
     if (screen === 'stop') {
       ui.paused = !ui.paused;
       render();
-    } else if (screen === 'party' || screen === 'camp') dispatch({ type: 'GOTO', screen: 'map' });
+    } else if (screen === 'party' || screen === 'camp' || screen === 'goals') dispatch({ type: 'GOTO', screen: 'map' });
     else toTitle();
   } else return false;
   return true;
@@ -442,6 +536,8 @@ async function boot() {
   app.content = await loadContent(app.settings.language);
   applySettings();
   attachSenses(() => app.settings);
+  app.book = new Set(readJson('book', []));
+  app.dailySolved = (readJson('daily', {}) || {}).solved || 0;
   refreshSlots();
   render();
 }
@@ -450,4 +546,6 @@ boot().catch((e) => {
   root.textContent = 'Pathkin Trail could not start: ' + e.message;
 });
 
-window.__pathkin = app; // for automated UI tests
+// For automated UI tests.
+window.__pathkin = app;
+app.render = render;

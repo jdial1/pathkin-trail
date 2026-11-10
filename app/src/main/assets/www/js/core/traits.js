@@ -30,3 +30,14 @@ export function buildRoster(traits, seed) {
 }
 
 export const STATUSES = ['available', 'party', 'delivered', 'parked', 'lost'];
+
+// Inverse of decodeCombo: the index of a trait combination.
+export function encodeCombo(traits, values) {
+  let n = 0;
+  let mul = 1;
+  for (const slot of traits.slots) {
+    n += slot.values.indexOf(values[slot.id]) * mul;
+    mul *= slot.values.length;
+  }
+  return n;
+}

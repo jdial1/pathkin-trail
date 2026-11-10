@@ -1,0 +1,65 @@
+{
+ "packVersion": 1,
+ "goals": [
+  {
+   "id": "first_stop",
+   "stat": "stopsSolved",
+   "atLeast": 1
+  },
+  {
+   "id": "ten_stops",
+   "stat": "stopsSolved",
+   "atLeast": 10
+  },
+  {
+   "id": "flawless",
+   "stat": "flawlessStops",
+   "atLeast": 1
+  },
+  {
+   "id": "five_flawless",
+   "stat": "flawlessStops",
+   "atLeast": 5
+  },
+  {
+   "id": "first_leg",
+   "stat": "legsCleared",
+   "atLeast": 1
+  },
+  {
+   "id": "full_party",
+   "stat": "fullParties",
+   "atLeast": 1
+  },
+  {
+   "id": "first_home",
+   "stat": "delivered",
+   "atLeast": 1
+  },
+  {
+   "id": "half_home",
+   "stat": "delivered",
+   "atLeast": 18
+  },
+  {
+   "id": "all_home",
+   "stat": "delivered",
+   "atLeast": 36
+  },
+  {
+   "id": "rescuer",
+   "stat": "rescued",
+   "atLeast": 1
+  },
+  {
+   "id": "both_forks",
+   "stat": "branchesSeen",
+   "atLeast": 6
+  },
+  {
+   "id": "no_hints_leg",
+   "stat": "legsWithoutHints",
+   "atLeast": 1
+  }
+ ]
+}

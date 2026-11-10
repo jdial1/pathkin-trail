@@ -1,116 +1,511 @@
 {
-  "packVersion": 1,
-  "tierOrder": [
-    "gentle",
-    "steady"
-  ],
-  "puzzles": [
-    {
-      "id": "p_sort_gate_01",
-      "family": "gate_sort",
-      "title": "loc:p_sort_gate_01.title",
-      "blurb": "loc:p_sort_gate_01.blurb",
-      "params": {
-        "gates": 2
-      },
-      "tiers": {
-        "gentle": {
-          "slots": [
-            "crest",
-            "eyes",
-            "mark",
-            "feet",
-            "tint"
-          ],
-          "maxTerms": 1,
-          "patience": 8
-        },
-        "steady": {
-          "slots": [
-            "crest",
-            "mark",
-            "feet",
-            "eyes"
-          ],
-          "maxTerms": 2,
-          "patience": 5
-        }
-      },
-      "scoring": {
-        "deliverOnSuccess": true,
-        "penaltyOnFail": "return_to_camp"
-      }
-    },
-    {
-      "id": "p_bridge_pair_01",
-      "family": "bridge_pair",
-      "title": "loc:p_bridge_pair_01.title",
-      "blurb": "loc:p_bridge_pair_01.blurb",
-      "params": {
-        "bridges": 2
-      },
-      "tiers": {
-        "gentle": {
-          "slots": [
-            "eyes",
-            "feet",
-            "mark",
-            "tint"
-          ],
-          "maxTerms": 1,
-          "patience": 8
-        },
-        "steady": {
-          "slots": [
-            "crest",
-            "eyes",
-            "mark",
-            "feet",
-            "tint"
-          ],
-          "maxTerms": 1,
-          "patience": 5
-        }
-      },
-      "scoring": {
-        "deliverOnSuccess": true,
-        "penaltyOnFail": "return_to_camp"
-      }
-    },
-    {
-      "id": "p_pattern_grid_01",
-      "family": "pattern_grid",
-      "title": "loc:p_pattern_grid_01.title",
-      "blurb": "loc:p_pattern_grid_01.blurb",
-      "params": {
-        "rows": 2,
-        "cols": 2
-      },
-      "tiers": {
-        "gentle": {
-          "slots": [
-            "tint",
-            "crest",
-            "eyes"
-          ],
-          "maxTerms": 1,
-          "patience": 8
-        },
-        "steady": {
-          "slots": [
-            "tint",
-            "crest",
-            "eyes",
-            "feet"
-          ],
-          "maxTerms": 1,
-          "patience": 5
-        }
-      },
-      "scoring": {
-        "deliverOnSuccess": true,
-        "penaltyOnFail": "return_to_camp"
-      }
-    }
-  ]
+ "packVersion": 2,
+ "tierOrder": [
+  "gentle",
+  "steady",
+  "hard",
+  "expert"
+ ],
+ "tiers": {
+  "gentle": {
+   "patience": 8,
+   "sends": [
+    2,
+    12
+   ]
+  },
+  "steady": {
+   "patience": 5,
+   "sends": [
+    2,
+    12
+   ]
+  },
+  "hard": {
+   "patience": 4,
+   "sends": [
+    2,
+    13
+   ]
+  },
+  "expert": {
+   "patience": 3,
+   "sends": [
+    2,
+    14
+   ]
+  }
+ },
+ "tierSets": {
+  "gate_sort": {
+   "gentle": {
+    "slotCount": 5,
+    "forms": [
+     "has"
+    ],
+    "examples": 1
+   },
+   "steady": {
+    "slotCount": 4,
+    "forms": [
+     "has",
+     "and2",
+     "or2"
+    ],
+    "examples": 3
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "has",
+     "and2",
+     "or2",
+     "anyOf2",
+     "count2of3"
+    ],
+    "examples": 4
+   },
+   "expert": {
+    "slotCount": 4,
+    "forms": [
+     "has",
+     "and2",
+     "or2",
+     "anyOf2",
+     "count2of3",
+     "andNot",
+     "and3",
+     "or3"
+    ],
+    "examples": 8
+   }
+  },
+  "gate_trio": {
+   "gentle": {
+    "slotCount": 3,
+    "forms": [
+     "has"
+    ],
+    "examples": 2
+   },
+   "steady": {
+    "slotCount": 4,
+    "forms": [
+     "has"
+    ],
+    "examples": 3
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "has",
+     "anyOf2"
+    ],
+    "examples": 5
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "has",
+     "anyOf2"
+    ],
+    "examples": 8
+   }
+  },
+  "bridge_pair": {
+   "gentle": {
+    "slotCount": 4,
+    "forms": [
+     "half"
+    ],
+    "examples": 1
+   },
+   "steady": {
+    "slotCount": 5,
+    "forms": [
+     "half",
+     "has"
+    ],
+    "examples": 1
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "half",
+     "has",
+     "halfAnd2",
+     "halfOr2"
+    ],
+    "examples": 3
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "half",
+     "has",
+     "halfAnd2",
+     "halfOr2",
+     "xor2"
+    ],
+    "examples": 8
+   }
+  },
+  "pattern_grid": {
+   "gentle": {
+    "slotCount": 3,
+    "forms": [
+     "half"
+    ],
+    "examples": 2
+   },
+   "steady": {
+    "slotCount": 4,
+    "forms": [
+     "half"
+    ],
+    "examples": 2
+   },
+   "hard": {
+    "slotCount": 5,
+    "forms": [
+     "half"
+    ],
+    "examples": 3
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "half",
+     "has"
+    ],
+    "examples": 6
+   }
+  },
+  "tour_path": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [
+     "half"
+    ],
+    "examples": 2
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [
+     "half"
+    ],
+    "examples": 4
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "half"
+    ],
+    "examples": 6
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "half"
+    ],
+    "examples": 9
+   }
+  }
+ },
+ "puzzles": [
+  {
+   "id": "p_sort_gate_01",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_01.title",
+   "blurb": "loc:family.gate_sort.blurb",
+   "params": {
+    "gates": 2
+   },
+   "slots": [
+    "crest",
+    "mark",
+    "feet",
+    "eyes",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_bridge_pair_01",
+   "family": "bridge_pair",
+   "title": "loc:p_bridge_pair_01.title",
+   "blurb": "loc:family.bridge_pair.blurb",
+   "params": {
+    "bridges": 2
+   },
+   "slots": [
+    "eyes",
+    "feet",
+    "mark",
+    "tint",
+    "crest"
+   ]
+  },
+  {
+   "id": "p_pattern_grid_01",
+   "family": "pattern_grid",
+   "title": "loc:p_pattern_grid_01.title",
+   "blurb": "loc:family.pattern_grid.blurb",
+   "params": {
+    "rows": 2,
+    "cols": 2
+   },
+   "slots": [
+    "tint",
+    "crest",
+    "eyes",
+    "feet",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_tour_path_01",
+   "family": "tour_path",
+   "title": "loc:p_tour_path_01.title",
+   "blurb": "loc:family.tour_path.blurb",
+   "params": {
+    "forks": 2
+   },
+   "slots": [
+    "feet",
+    "crest",
+    "tint",
+    "eyes",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_sort_gate_02",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_02.title",
+   "blurb": "loc:family.gate_trio.blurb",
+   "params": {
+    "gates": 3
+   },
+   "slots": [
+    "eyes",
+    "tint",
+    "mark",
+    "crest",
+    "feet"
+   ],
+   "tierSet": "gate_trio"
+  },
+  {
+   "id": "p_bridge_pair_02",
+   "family": "bridge_pair",
+   "title": "loc:p_bridge_pair_02.title",
+   "blurb": "loc:family.bridge_pair.blurb",
+   "params": {
+    "bridges": 2
+   },
+   "slots": [
+    "crest",
+    "tint",
+    "eyes",
+    "mark",
+    "feet"
+   ]
+  },
+  {
+   "id": "p_pattern_grid_02",
+   "family": "pattern_grid",
+   "title": "loc:p_pattern_grid_02.title",
+   "blurb": "loc:family.pattern_grid.blurb",
+   "params": {
+    "rows": 2,
+    "cols": 2
+   },
+   "slots": [
+    "mark",
+    "feet",
+    "tint",
+    "crest",
+    "eyes"
+   ]
+  },
+  {
+   "id": "p_tour_path_02",
+   "family": "tour_path",
+   "title": "loc:p_tour_path_02.title",
+   "blurb": "loc:family.tour_path.blurb",
+   "params": {
+    "forks": 2
+   },
+   "slots": [
+    "eyes",
+    "mark",
+    "crest",
+    "feet",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_sort_gate_03",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_03.title",
+   "blurb": "loc:family.gate_sort.blurb",
+   "params": {
+    "gates": 2
+   },
+   "slots": [
+    "tint",
+    "feet",
+    "eyes",
+    "crest",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_bridge_pair_03",
+   "family": "bridge_pair",
+   "title": "loc:p_bridge_pair_03.title",
+   "blurb": "loc:family.bridge_pair.blurb",
+   "params": {
+    "bridges": 2
+   },
+   "slots": [
+    "mark",
+    "crest",
+    "feet",
+    "eyes",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_pattern_grid_03",
+   "family": "pattern_grid",
+   "title": "loc:p_pattern_grid_03.title",
+   "blurb": "loc:family.pattern_grid.blurb",
+   "params": {
+    "rows": 2,
+    "cols": 2
+   },
+   "slots": [
+    "eyes",
+    "feet",
+    "crest",
+    "tint",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_tour_path_03",
+   "family": "tour_path",
+   "title": "loc:p_tour_path_03.title",
+   "blurb": "loc:family.tour_path.blurb",
+   "params": {
+    "forks": 2
+   },
+   "slots": [
+    "tint",
+    "mark",
+    "eyes",
+    "crest",
+    "feet"
+   ]
+  },
+  {
+   "id": "p_sort_gate_04",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_04.title",
+   "blurb": "loc:family.gate_trio.blurb",
+   "params": {
+    "gates": 3
+   },
+   "slots": [
+    "feet",
+    "crest",
+    "tint",
+    "mark",
+    "eyes"
+   ],
+   "tierSet": "gate_trio"
+  },
+  {
+   "id": "p_tour_path_04",
+   "family": "tour_path",
+   "title": "loc:p_tour_path_04.title",
+   "blurb": "loc:family.tour_path.blurb",
+   "params": {
+    "forks": 2
+   },
+   "slots": [
+    "crest",
+    "eyes",
+    "feet",
+    "mark",
+    "tint"
+   ]
+  },
+  {
+   "id": "p_bridge_pair_04",
+   "family": "bridge_pair",
+   "title": "loc:p_bridge_pair_04.title",
+   "blurb": "loc:family.bridge_pair.blurb",
+   "params": {
+    "bridges": 2
+   },
+   "slots": [
+    "tint",
+    "feet",
+    "crest",
+    "eyes",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_pattern_grid_04",
+   "family": "pattern_grid",
+   "title": "loc:p_pattern_grid_04.title",
+   "blurb": "loc:family.pattern_grid.blurb",
+   "params": {
+    "rows": 2,
+    "cols": 2
+   },
+   "slots": [
+    "crest",
+    "mark",
+    "tint",
+    "eyes",
+    "feet"
+   ]
+  },
+  {
+   "id": "p_tour_path_05",
+   "family": "tour_path",
+   "title": "loc:p_tour_path_05.title",
+   "blurb": "loc:family.tour_path.blurb",
+   "params": {
+    "forks": 2
+   },
+   "slots": [
+    "mark",
+    "tint",
+    "feet",
+    "eyes",
+    "crest"
+   ]
+  },
+  {
+   "id": "p_sort_gate_05",
+   "family": "gate_sort",
+   "title": "loc:p_sort_gate_05.title",
+   "blurb": "loc:family.gate_sort.blurb",
+   "params": {
+    "gates": 2
+   },
+   "slots": [
+    "mark",
+    "eyes",
+    "crest",
+    "tint",
+    "feet"
+   ]
+  }
+ ]
 }

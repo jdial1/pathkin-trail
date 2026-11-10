@@ -1,15 +1,123 @@
 {
-  "packVersion": 1,
-  "hintTokenCap": 5,
-  "startHintTokens": 1,
-  "fullPartiesToRaiseTier": 3,
-  "legs": [
-    {
-      "id": "leg1",
-      "name": "loc:leg1.name",
-      "theme": "meadow",
-      "stops": ["p_sort_gate_01", "p_bridge_pair_01", "p_pattern_grid_01"],
-      "campAfter": "camp1"
-    }
+ "packVersion": 2,
+ "hintTokenCap": 5,
+ "startHintTokens": 1,
+ "fullPartiesToRaiseTier": 3,
+ "strandAfterReturns": 3,
+ "rescueSharedTraits": 2,
+ "daily": {
+  "partySize": 12,
+  "tier": "steady",
+  "puzzles": [
+   "p_sort_gate_01",
+   "p_bridge_pair_01",
+   "p_pattern_grid_01",
+   "p_tour_path_01",
+   "p_sort_gate_02"
   ]
+ },
+ "assist": {
+  "window": 5,
+  "failsForFreeHint": 2,
+  "flawlessForTierUp": 3
+ },
+ "camps": [
+  "loc:camp.0",
+  "loc:camp.1",
+  "loc:camp.2",
+  "loc:camp.3",
+  "loc:camp.4"
+ ],
+ "legs": [
+  {
+   "id": "leg1",
+   "name": "loc:leg1.name",
+   "theme": "meadow",
+   "from": 0,
+   "to": 1,
+   "branches": [
+    {
+     "id": "main",
+     "name": "loc:leg1.name",
+     "stops": [
+      "p_sort_gate_01",
+      "p_bridge_pair_01",
+      "p_pattern_grid_01"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "leg2",
+   "name": "loc:leg2.name",
+   "theme": "canyon",
+   "from": 1,
+   "to": 2,
+   "branches": [
+    {
+     "id": "a",
+     "name": "loc:leg2.a",
+     "stops": [
+      "p_tour_path_01",
+      "p_sort_gate_02",
+      "p_bridge_pair_02"
+     ]
+    },
+    {
+     "id": "b",
+     "name": "loc:leg2.b",
+     "stops": [
+      "p_pattern_grid_02",
+      "p_tour_path_02",
+      "p_sort_gate_03"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "leg3",
+   "name": "loc:leg3.name",
+   "theme": "marsh",
+   "from": 2,
+   "to": 3,
+   "branches": [
+    {
+     "id": "a",
+     "name": "loc:leg3.a",
+     "stops": [
+      "p_bridge_pair_03",
+      "p_pattern_grid_03",
+      "p_tour_path_03"
+     ]
+    },
+    {
+     "id": "b",
+     "name": "loc:leg3.b",
+     "stops": [
+      "p_sort_gate_04",
+      "p_tour_path_04",
+      "p_bridge_pair_04"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "leg4",
+   "name": "loc:leg4.name",
+   "theme": "peak",
+   "from": 3,
+   "to": 4,
+   "branches": [
+    {
+     "id": "main",
+     "name": "loc:leg4.name",
+     "stops": [
+      "p_pattern_grid_04",
+      "p_tour_path_05",
+      "p_sort_gate_05"
+     ]
+    }
+   ]
+  }
+ ]
 }

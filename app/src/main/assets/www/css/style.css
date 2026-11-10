@@ -176,3 +176,52 @@ input[type="text"] { user-select: text; -webkit-user-select: text; }
   .stop .tray { border-top: 0; align-content: flex-start; overflow-y: auto; }
   #app { max-width: none; }
 }
+
+/* ---- Full Trail additions ---- */
+.warn { color: var(--bad); font-weight: 700; }
+.actions.tight { padding-top: 0; }
+.btn.small { flex: 0 0 auto; min-height: 48px; padding: 4px 12px; }
+
+/* Trail map: tall, scrolls inside its body; camps are the tap targets. */
+.mapbody { padding: 0 8px; }
+.map { max-height: none; width: 100%; max-width: 420px; height: auto; }
+.trailpath { fill: none; stroke: #b79a6a; stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 15; }
+.trailpath.thin { stroke-width: 6; stroke-dasharray: 2 11; }
+.map .node-t.small { font-size: 12px; opacity: 0.8; }
+.campnode { cursor: pointer; }
+.campnode .camphit { fill: var(--card); stroke: var(--line); stroke-width: 2; }
+.campnode.on .camphit { stroke: var(--accent); stroke-width: 4; }
+.campnode .count { fill: var(--ink); }
+.campnode .count-n { font: 700 14px var(--ui); fill: var(--paper); }
+.campnode .lost-n { font: 800 18px var(--ui); fill: var(--bad); }
+.campcard { gap: 8px; }
+.segs { margin: 0; gap: 4px; }
+.seg { padding: 0 4px; font-size: 0.9rem; }
+.suggest { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-weight: 600; color: var(--accent); }
+.suggest span { flex: 1 1 60%; }
+
+/* Stops with three or four targets, and the forked trail. */
+.targets.n3 { grid-template-columns: repeat(3, 1fr); }
+.targets.n4 { grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.targets.n4 .target { padding: 6px 2px; align-items: center; }
+.targets.n3 .target-head, .targets.n4 .target-head { flex-direction: column; gap: 2px; font-size: 0.9rem; text-align: center; }
+.targets.n3 .minis, .targets.n4 .minis { justify-content: center; }
+.target.tour_path { border-radius: 12px 12px 28px 28px; }
+.forks { display: block; width: 100%; height: 56px; flex: 0 0 auto; margin-top: 2px; }
+.forks .node { fill: var(--card); stroke: var(--ink); stroke-width: 2.5; }
+.forks .node-n { font: 700 13px var(--ui); fill: var(--ink); }
+.kin.mini.guide { opacity: 0.5; outline: 2px dotted var(--ink); outline-offset: -3px; border-radius: 10px; }
+.kin.lost { filter: grayscale(0.7); opacity: 0.75; }
+.kin .tag.share { background: var(--ink); }
+
+/* Rescue, goals */
+.rescue { margin: 8px 0; text-align: left; }
+.sheet .card.rescue { text-align: left; }
+.rescue .grid { justify-content: flex-start; }
+.goals { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.goals li { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 4px 12px; background: var(--card); border: 2px solid var(--line); border-radius: 12px; }
+.goals li span:nth-child(2) { flex: 1; }
+.goals li.done { border-color: var(--accent); }
+.goals .tick { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ink); text-align: center; font: 700 16px/24px var(--ui); flex: 0 0 auto; }
+.goals li.done .tick { background: var(--accent); color: var(--accent-ink); }
+span.kin { min-width: 48px; min-height: 52px; }
