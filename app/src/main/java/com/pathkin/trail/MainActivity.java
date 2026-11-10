@@ -1,10 +1,15 @@
 package com.pathkin.trail;
 
 import android.app.Activity;
+import android.content.ContentValues;
 import android.graphics.Color;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.util.Base64;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.view.View;
@@ -23,6 +28,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -148,6 +154,9 @@ public class MainActivity extends Activity {
         MIME.put("json", "application/json");
         MIME.put("svg", "image/svg+xml");
         MIME.put("png", "image/png");
+        MIME.put("ttf", "font/ttf");
+        MIME.put("webmanifest", "application/manifest+json");
+        MIME.put("txt", "text/plain");
     }
 
     private WebResourceResponse asset(String path) {
@@ -234,6 +243,40 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public synchronized void remove(String key) {
             for (int n = 0; n <= BACKUPS; n++) file(key, n).delete();
+        }
+
+        /**
+         * Saves a picture made in the game as a PNG. On Android 10 and later it
+         * goes to the shared Pictures folder (no permission needed); on older
+         * versions it goes to the app's own pictures folder.
+         */
+        @JavascriptInterface
+        public boolean savePicture(String base64Png) {
+            try {
+                byte[] png = Base64.decode(base64Png, Base64.DEFAULT);
+                String name = "pathkin-trail-" + System.currentTimeMillis() + ".png";
+                if (Build.VERSION.SDK_INT >= 29) {
+                    ContentValues values = new ContentValues();
+                    values.put(MediaStore.MediaColumns.DISPLAY_NAME, name);
+                    values.put(MediaStore.MediaColumns.MIME_TYPE, "image/png");
+                    values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/PathkinTrail");
+                    Uri uri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+                    if (uri == null) return false;
+                    try (OutputStream out = getContentResolver().openOutputStream(uri)) {
+                        if (out == null) return false;
+                        out.write(png);
+                    }
+                } else {
+                    File dir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+                    if (dir == null) return false;
+                    try (FileOutputStream out = new FileOutputStream(new File(dir, name))) {
+                        out.write(png);
+                    }
+                }
+                return true;
+            } catch (IOException | RuntimeException e) {
+                return false;
+            }
         }
 
         @JavascriptInterface

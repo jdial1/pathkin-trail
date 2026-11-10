@@ -1,0 +1,202 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Pathkin Trail theme pack",
+ "type": "object",
+ "required": [
+  "packVersion",
+  "palettes",
+  "themes"
+ ],
+ "properties": {
+  "packVersion": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "palettes": {
+   "type": "object",
+   "required": [
+    "default",
+    "coloursafe"
+   ],
+   "additionalProperties": {
+    "type": "array",
+    "minItems": 4,
+    "items": {
+     "type": "string",
+     "pattern": "^#[0-9a-fA-F]{6}$"
+    }
+   }
+  },
+  "themes": {
+   "type": "object",
+   "additionalProperties": {
+    "type": "object",
+    "required": [
+     "accent",
+     "accentInk",
+     "ground",
+     "groundDark",
+     "map",
+     "scene",
+     "music"
+    ],
+    "properties": {
+     "accent": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "accentInk": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "ground": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "groundDark": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "map": {
+      "type": "string",
+      "pattern": "^#[0-9a-fA-F]{6}$"
+     },
+     "scene": {
+      "type": "object",
+      "required": [
+       "sky",
+       "glow",
+       "cloud",
+       "far",
+       "mid",
+       "near",
+       "ground",
+       "lit",
+       "shade",
+       "dark",
+       "rim",
+       "path",
+       "ridge",
+       "landmark",
+       "frame"
+      ],
+      "properties": {
+       "sky": {
+        "type": "array",
+        "minItems": 2,
+        "items": {
+         "type": "string",
+         "pattern": "^#[0-9a-fA-F]{6}$"
+        }
+       },
+       "glow": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "cloud": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "far": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "mid": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "near": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "ground": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "lit": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "shade": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "dark": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "rim": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "path": {
+        "type": "string",
+        "pattern": "^#[0-9a-fA-F]{6}$"
+       },
+       "ridge": {
+        "type": "string",
+        "enum": [
+         "hill",
+         "mesa",
+         "peak"
+        ]
+       },
+       "landmark": {
+        "type": "string",
+        "enum": [
+         "tree",
+         "mesa",
+         "pine"
+        ]
+       },
+       "frame": {
+        "type": "string",
+        "enum": [
+         "trunk",
+         "rock",
+         "pine"
+        ]
+       },
+       "night": {
+        "type": "boolean"
+       },
+       "snow": {
+        "type": "boolean"
+       }
+      },
+      "additionalProperties": false
+     },
+     "music": {
+      "type": "object",
+      "required": [
+       "root",
+       "scale",
+       "bpm"
+      ],
+      "properties": {
+       "root": {
+        "type": "integer",
+        "minimum": 24
+       },
+       "scale": {
+        "type": "array",
+        "minItems": 3,
+        "items": {
+         "type": "integer",
+         "minimum": 0
+        }
+       },
+       "bpm": {
+        "type": "integer",
+        "minimum": 30
+       }
+      },
+      "additionalProperties": false
+     }
+    },
+    "additionalProperties": false
+   }
+  }
+ },
+ "additionalProperties": false
+}

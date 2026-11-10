@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { join, normalize, extname } from 'node:path';
 
 const rootDir = fileURLToPath(new URL('../app/src/main/assets/www/', import.meta.url));
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.ttf': 'font/ttf', '.txt': 'text/plain' };
 const port = Number(process.argv[2] || 8765);
 
 createServer(async (req, res) => {

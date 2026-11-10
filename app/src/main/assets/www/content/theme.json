@@ -1,5 +1,5 @@
 {
- "packVersion": 3,
+ "packVersion": 4,
  "palettes": {
   "default": [
    "#8fb86a",
@@ -16,19 +16,121 @@
  },
  "themes": {
   "meadow": {
-   "accent": "#3f7d4e",
+   "accent": "#2f7d46",
    "accentInk": "#ffffff",
-   "paper": "#f6efdf"
+   "ground": "#3f8a3f",
+   "groundDark": "#245a2e",
+   "map": "#9fd47f",
+   "scene": {
+    "sky": [
+     "#4fa3d8",
+     "#ffd58a"
+    ],
+    "glow": "#fff0b8",
+    "cloud": "#fff3d6",
+    "far": "#6f8fc4",
+    "mid": "#6fae5a",
+    "near": "#3f9140",
+    "ground": "#2f7d3c",
+    "lit": "#c9e06a",
+    "shade": "#1f5a3a",
+    "dark": "#2a1a4a",
+    "rim": "#f6c453",
+    "path": "#f6dca0",
+    "ridge": "hill",
+    "landmark": "tree",
+    "frame": "trunk"
+   },
+   "music": {
+    "root": 60,
+    "scale": [
+     0,
+     2,
+     4,
+     7,
+     9
+    ],
+    "bpm": 96
+   }
   },
   "canyon": {
-   "accent": "#a8532c",
+   "accent": "#c2552a",
    "accentInk": "#ffffff",
-   "paper": "#f7ecdc"
+   "ground": "#b5562f",
+   "groundDark": "#6e2f2a",
+   "map": "#f0a56e",
+   "scene": {
+    "sky": [
+     "#7a3f8f",
+     "#ffb054"
+    ],
+    "glow": "#ffd98a",
+    "cloud": "#ffc98f",
+    "far": "#a85f8a",
+    "mid": "#d0703a",
+    "near": "#a8442e",
+    "ground": "#8a3a34",
+    "lit": "#ff9f45",
+    "shade": "#5a2440",
+    "dark": "#2b143a",
+    "rim": "#ff9f45",
+    "path": "#f3c98a",
+    "ridge": "mesa",
+    "landmark": "mesa",
+    "frame": "rock"
+   },
+   "music": {
+    "root": 62,
+    "scale": [
+     0,
+     2,
+     3,
+     5,
+     7,
+     10
+    ],
+    "bpm": 84
+   }
   },
   "peak": {
-   "accent": "#4f5a94",
+   "accent": "#4a57b0",
    "accentInk": "#ffffff",
-   "paper": "#f1f0ea"
+   "ground": "#3f4a9a",
+   "groundDark": "#232a66",
+   "map": "#a9b6f0",
+   "scene": {
+    "sky": [
+     "#141a52",
+     "#7a6fd0"
+    ],
+    "glow": "#cfe0ff",
+    "cloud": "#8f8ee0",
+    "far": "#6f78c8",
+    "mid": "#4a53a8",
+    "near": "#343c8a",
+    "ground": "#2a3178",
+    "lit": "#8fa6ff",
+    "shade": "#1c2260",
+    "dark": "#0f1238",
+    "rim": "#9fd0ff",
+    "path": "#c9d2ff",
+    "ridge": "peak",
+    "landmark": "pine",
+    "frame": "pine",
+    "night": true,
+    "snow": true
+   },
+   "music": {
+    "root": 57,
+    "scale": [
+     0,
+     3,
+     5,
+     7,
+     10
+    ],
+    "bpm": 72
+   }
   }
  }
 }

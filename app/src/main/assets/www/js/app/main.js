@@ -6,14 +6,19 @@ import { prepareContent } from '../core/content.js';
 import { encodeCombo } from '../core/traits.js';
 import { family } from '../core/families.js';
 import { storage } from './storage.js';
-import { bus, attachSenses } from './feedback.js';
+import { bus, attachSenses, music, voice } from './feedback.js';
+import * as extras from './extras.js';
 import * as view from './screens.js';
+import { DEFS } from './art/paint.js';
+import { scene, parchment } from './art/scenes.js';
 
-const LANGUAGES = ['en', 'es'];
-const DEFAULT_SETTINGS = { audio: true, haptics: true, reducedMotion: false, colourSafe: false, assist: true, textSize: 1, language: 'en' };
+const LANGUAGES = ['en', 'es', 'fr', 'de', 'pt'];
+const DEFAULT_SETTINGS = { audio: true, haptics: true, reducedMotion: false, colourSafe: false, assist: true, music: true, textSize: 1, language: 'en' };
 
 const root = document.getElementById('app');
 const toastEl = document.getElementById('toast');
+const stage = document.getElementById('stage');
+document.getElementById('art-defs').innerHTML = DEFS;
 
 const app = {
   content: null,
@@ -24,7 +29,9 @@ const app = {
   palette: [],
   book: new Set(), // trait combinations met so far, across all Trails
   dailySolved: 0,
-  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'ready', filter: {}, basket: 0, convoy: [], dirs: [0, 0, 0], stopKey: '' },
+  ui: { view: 'title', back: 'title', slotsMode: 'continue', sel: null, inspect: null, paused: false, confirm: null, campTab: 'ready', filter: {}, basket: 0, convoy: [], dirs: [0, 0, 0], stopKey: '', stopStarted: 0, practiceTier: 'gentle', newTrail: null, photo: null },
+  // Play record: kept on this device only, never sent anywhere.
+  record: { stops: {}, daily: { last: 0, streak: 0, best: 0 } },
   t(key, vars) {
     let s = app.content.text[key];
     if (s === undefined) return key;
@@ -38,7 +45,7 @@ const app = {
 // ---- Content and storage ----------------------------------------------------
 
 async function loadContent(language) {
-  const names = { traits: 'traits.json', puzzles: 'puzzles.json', trail: 'trail.json', theme: 'theme.json', goals: 'achievements.json', text: `text.${language}.json` };
+  const names = { traits: 'traits.json', puzzles: 'puzzles.json', trail: 'trail.json', theme: 'theme.json', goals: 'achievements.json', trinkets: 'trinkets.json', text: `text.${language}.json` };
   const out = {};
   await Promise.all(
     Object.entries(names).map(async ([key, file]) => {
@@ -73,7 +80,7 @@ function refreshSlots() {
 
 function saveProfile() {
   const p = app.profile;
-  if (!p) return;
+  if (!p || p.kind === 'practice') return;
   if (p.kind === 'daily') storage.save('daily', JSON.stringify({ doc: p, solved: app.dailySolved }));
   else storage.save('slot' + p.slot, JSON.stringify(p));
 }
@@ -107,8 +114,29 @@ function applyTheme() {
   const theme = app.content.theme.themes[leg.theme];
   const el = document.documentElement;
   el.style.setProperty('--accent', theme.accent);
-  el.style.setProperty('--accent-ink', theme.accentInk);
-  el.style.setProperty('--paper', theme.paper);
+  el.style.setProperty('--ground', theme.ground);
+  el.style.setProperty('--ground-dark', theme.groundDark);
+  musicTheme = leg.theme;
+  paintStage(leg.theme);
+}
+let musicTheme = 'meadow';
+
+// The painted backdrop changes only when the kind of screen or the biome
+// does, so playing a Stop never repaints it.
+let stageKey = '';
+function paintStage(theme) {
+  const p = app.profile;
+  const view = app.ui.view;
+  let kind = 'paper';
+  if (view === 'title') kind = 'vista';
+  else if (view === 'game') kind = { roster: 'vista', party: 'vista', stop: 'stop', summary: 'camp', camp: 'camp', finale: 'home', dailyDone: 'home' }[p.screen] || 'paper';
+  // A camp sits at the end of the leg that led to it.
+  if (kind === 'camp' && p.camp > 0) theme = app.content.trail.legs[Math.min(p.camp, app.content.trail.legs.length) - 1].theme;
+  if (kind === 'home' || view === 'title') theme = 'meadow';
+  const key = kind === 'paper' ? kind : `${kind}|${theme}`;
+  if (key === stageKey) return;
+  stageKey = key;
+  stage.innerHTML = kind === 'paper' ? parchment() : scene(kind, app.content.theme.themes[theme]);
 }
 
 function applySettings() {
@@ -122,11 +150,35 @@ function applySettings() {
 
 // ---- Store --------------------------------------------------------------------
 
+// Days as whole numbers, so "yesterday" is one less than "today".
+const dayNumber = (d = new Date()) => Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000);
+
+function noteStop(stop, daily) {
+  const key = stop.puzzleId + '|' + stop.tier;
+  const row = app.record.stops[key] || { played: 0, solved: 0, wrong: 0, seconds: 0 };
+  row.played += 1;
+  row.solved += stop.status === 'solved' ? 1 : 0;
+  row.wrong += stop.wrong;
+  row.seconds += Math.min(3600, Math.round((Date.now() - app.ui.stopStarted) / 1000));
+  app.record.stops[key] = row;
+  if (daily && stop.status === 'solved') {
+    // A gentle streak: it grows on consecutive days and simply starts again after a gap.
+    const d = app.record.daily;
+    const now = dayNumber();
+    if (d.last !== now) d.streak = d.last === now - 1 ? d.streak + 1 : 1;
+    d.last = now;
+    d.best = Math.max(d.best, d.streak);
+  }
+  storage.save('record', JSON.stringify(app.record));
+}
+
 function dispatch(ev) {
   const screen = app.profile.screen;
+  const before = app.profile.stop;
   const r = game.reduce(app.profile, ev, app.content);
   if (r.profile !== app.profile) {
     const p = (app.profile = r.profile);
+    if (ev.type === 'STOP_CONTINUE' && before) noteStop(before, p.kind === 'daily');
     // A daily Stop counts once, when its result is first recorded.
     if (p.kind === 'daily' && ev.type === 'STOP_CONTINUE' && p.result && p.result.status === 'solved') app.dailySolved += 1;
     saveProfile();
@@ -145,6 +197,7 @@ function syncStopUi() {
   const key = stop ? `${app.profile.kind}|${app.profile.run.stopIndex}|${stop.puzzleId}|${stop.tier}` : '';
   if (key !== app.ui.stopKey) {
     app.ui.stopKey = key;
+    app.ui.stopStarted = Date.now();
     app.ui.basket = 0;
     app.ui.convoy = [];
     app.ui.dirs = stop && stop.extra.dirs ? stop.extra.dirs.slice() : [0, 0, 0];
@@ -161,13 +214,21 @@ function render() {
   else if (ui.view === 'credits') html = view.creditsView(app);
   else if (ui.view === 'settings') html = view.settingsView(app);
   else if (ui.view === 'book') html = view.bookView(app);
+  else if (ui.view === 'practice') html = extras.practiceView(app);
+  else if (ui.view === 'photo') html = extras.photoView(app);
+  else if (ui.view === 'record') html = extras.recordView(app);
   else html = view.gameView(app);
   if (ui.view === 'game') {
     if (ui.paused) html += view.pauseSheet(app);
     if (ui.inspect) html += view.inspectSheet(app);
   }
+  if (ui.newTrail) html += extras.newTrailSheet(app);
   if (ui.confirm) html += view.confirmSheet(app);
   root.innerHTML = html;
+  // Music follows the place; it thins out while a Stop is being worked on.
+  const inStop = ui.view === 'game' && app.profile.screen === 'stop';
+  music.set({ on: app.settings.audio && app.settings.music, tune: app.content.theme.themes[musicTheme].music, calm: inStop });
+  if (mapZoom > 1) setZoom(mapZoom);
   const stop = app.profile && app.profile.stop;
   const overlay = [ui.view, ui.paused, ui.inspect, !!ui.confirm, stop && stop.status].join('|');
   if (overlay === lastOverlay) for (const el of root.querySelectorAll('.scrim')) el.classList.add('still');
@@ -229,6 +290,7 @@ bus.on((e) => {
   if (e.type === 'rescueMiss') toast(app.t('toast.rescueMiss', { n: e.shared, need: app.content.trail.rescueSharedTraits }));
   if (e.type === 'assist' && e.kind === 'freeHint') toast(app.t('assist.freeHint'));
   if (e.type === 'goal') toast(app.t('toast.goal', { goal: app.t('goal.' + e.id) }));
+  if (e.type === 'trinket') toast(app.t('toast.trinket', { name: app.t('trinket.' + e.id) }));
   if (e.type === 'hint') {
     // A hint is either a slot name or a small fact with its own sentence.
     const vars = e.say ? Object.fromEntries(Object.entries(e.say.vars).map(([k, v]) => [k, typeof v === 'string' && v in app.content.text ? app.t(v) : v])) : null;
@@ -263,9 +325,10 @@ function ask(text, yes) {
   render();
 }
 
+// Opens the choices for a new Trail (how many creatures, Hard Trail or not).
 function newTrail(slot) {
-  const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
-  openGame(game.newProfile(app.content, seed, slot));
+  app.ui.newTrail = { slot, size: app.content.trail.rosterSizes[0], hard: false };
+  render();
 }
 
 function toggleRider(id) {
@@ -334,6 +397,80 @@ const actions = {
     app.ui.view = 'credits';
     render();
   },
+  'nt-size'(el) {
+    app.ui.newTrail.size = Number(el.dataset.size);
+    render();
+  },
+  'nt-cancel'() {
+    app.ui.newTrail = null;
+    render();
+  },
+  'nt-start'() {
+    const { slot, size, hard } = app.ui.newTrail;
+    app.ui.newTrail = null;
+    const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
+    openGame(game.newProfile(app.content, seed, slot, { assist: app.settings.assist, hardTrail: hard, rosterSize: size }));
+  },
+  'open-practice'() {
+    app.profile = null;
+    app.ui.view = 'practice';
+    render();
+  },
+  'practice-tier'(el) {
+    app.ui.practiceTier = el.dataset.tier;
+    render();
+  },
+  'practice-start': (el) => openGame(game.newDaily(app.content, today(), { puzzleId: el.dataset.puzzle, tier: app.ui.practiceTier })),
+  'open-record'() {
+    app.ui.view = 'record';
+    render();
+  },
+  'open-settings-back'() {
+    app.ui.view = 'settings';
+    render();
+  },
+  'record-erase'() {
+    ask(app.t('record.eraseConfirm'), () => {
+      app.record = { stops: {}, daily: { last: 0, streak: 0, best: 0 } };
+      storage.save('record', JSON.stringify(app.record));
+      render();
+    });
+  },
+  trinket: (el) => dispatch({ type: 'TRINKET', id: app.ui.inspect, trinket: el.dataset.trinket || null }),
+  'open-photo'() {
+    const leg = app.content.trail.legs[Math.min(app.profile.camp, app.content.trail.legs.length - 1)];
+    app.ui.photo = { scene: 'stop|' + leg.theme, stickers: [], pick: null };
+    app.ui.inspect = null;
+    app.ui.view = 'photo';
+    render();
+  },
+  'photo-back'() {
+    app.ui.view = 'game';
+    render();
+  },
+  'photo-scene'(el) {
+    app.ui.photo.scene = el.dataset.scene;
+    render();
+  },
+  'photo-pick'(el) {
+    app.ui.photo.pick = app.ui.photo.pick === el.dataset.sticker ? null : el.dataset.sticker;
+    render();
+  },
+  'photo-clear'() {
+    app.ui.photo.stickers = [];
+    render();
+  },
+  'photo-place'(el, e) {
+    const ph = app.ui.photo;
+    if (!ph.pick || ph.stickers.length >= 24) return;
+    const box = el.querySelector('svg').getBoundingClientRect();
+    // Keyboard users get stickers dropped in a tidy row.
+    const x = e && e.clientX ? ((e.clientX - box.left) / box.width) * 390 : 40 + (ph.stickers.length % 8) * 44;
+    const y = e && e.clientY ? ((e.clientY - box.top) / box.height) * 488 : 60 + Math.floor(ph.stickers.length / 8) * 44;
+    ph.stickers.push({ k: ph.pick, x: Math.round(x), y: Math.round(y) });
+    render();
+  },
+  'photo-save': savePhoto,
   'open-settings'() {
     app.ui.back = app.ui.view;
     app.ui.view = 'settings';
@@ -387,6 +524,8 @@ const actions = {
     // On the rails a tap adds a rider to the convoy, or takes it out again.
     if (app.profile.stop.family === 'switch_run') toggleRider(id);
     else app.ui.sel = app.ui.sel === id ? null : id;
+    // Each creature has a little call of its own, set by its feet.
+    if (app.settings.audio) voice(app.profile.roster.find((c) => c.id === id).traits);
     render();
   },
   target(el) {
@@ -463,6 +602,10 @@ const changes = {
     applySettings();
     render();
   },
+  'nt-hard'(el) {
+    app.ui.newTrail.hard = el.checked;
+    render();
+  },
   filter(el) {
     if (el.value === '') delete app.ui.filter[el.dataset.slot];
     else app.ui.filter[el.dataset.slot] = el.value;
@@ -487,7 +630,7 @@ root.addEventListener('click', (e) => {
   // With a creature picked, tapping anywhere on a target sends it there.
   if (el.dataset.act === 'inspect' && app.ui.sel && el.closest('[data-target]')) el = el.closest('[data-target]');
   const fn = actions[el.dataset.act];
-  if (fn) fn(el);
+  if (fn) fn(el, e);
 });
 
 root.addEventListener('change', (e) => {
@@ -586,13 +729,90 @@ window.addEventListener('pointercancel', () => {
 });
 root.addEventListener('contextmenu', (e) => e.preventDefault());
 
+// Saves the picture as a PNG: to the gallery on Android, as a download on the web.
+function savePhoto() {
+  const svg = new XMLSerializer().serializeToString(root.querySelector('.photo-svg'));
+  const img = new Image();
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1170;
+    canvas.height = 1464;
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL('image/png');
+    if (window.PathkinNative && window.PathkinNative.savePicture) {
+      toast(app.t(window.PathkinNative.savePicture(data.split(',')[1]) ? 'photo.saved' : 'photo.failed'));
+    } else {
+      const link = document.createElement('a');
+      link.href = data;
+      link.download = 'pathkin-trail.png';
+      link.click();
+      toast(app.t('photo.saved'));
+    }
+  };
+  img.onerror = () => toast(app.t('photo.failed'));
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+}
+
+// Gestures (never the only way to do anything): double-tap or pinch to zoom
+// the Trail Map, swipe sideways to change Camp tab.
+let mapZoom = 1;
+const fingers = new Map();
+let pinchStart = 0;
+let swipeStart = null;
+function setZoom(z) {
+  mapZoom = Math.max(1, Math.min(2.2, z));
+  const map = root.querySelector('.map');
+  if (map) map.style.width = mapZoom * 100 + '%';
+}
+root.addEventListener('dblclick', (e) => {
+  if (e.target.closest('.mapbody') && !e.target.closest('[data-act]')) setZoom(mapZoom > 1 ? 1 : 1.7);
+});
+root.addEventListener('pointerdown', (e) => {
+  if (e.target.closest('.mapbody')) fingers.set(e.pointerId, e);
+  if (fingers.size === 2) {
+    const [a, b] = [...fingers.values()];
+    pinchStart = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / mapZoom;
+  }
+  swipeStart = app.ui.view === 'game' && app.profile.screen === 'camp' && !e.target.closest('.kin, .sheet, .actions') ? { x: e.clientX, y: e.clientY } : null;
+});
+root.addEventListener('pointermove', (e) => {
+  if (!fingers.has(e.pointerId)) return;
+  fingers.set(e.pointerId, e);
+  if (fingers.size === 2 && pinchStart) {
+    const [a, b] = [...fingers.values()];
+    setZoom(Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinchStart);
+  }
+});
+const liftFinger = (e) => {
+  fingers.delete(e.pointerId);
+  if (fingers.size < 2) pinchStart = 0;
+  if (swipeStart && e.type === 'pointerup') {
+    const dx = e.clientX - swipeStart.x;
+    if (Math.abs(dx) > 70 && Math.abs(e.clientY - swipeStart.y) < 50) {
+      const tabs = [...root.querySelectorAll('[data-act="camp-tab"]')].map((el) => el.dataset.tab);
+      const at = tabs.indexOf(root.querySelector('.tab.on').dataset.tab);
+      const next = tabs[at + (dx < 0 ? 1 : -1)];
+      if (next) {
+        app.ui.campTab = next;
+        render();
+      }
+    }
+  }
+  swipeStart = null;
+};
+root.addEventListener('pointerup', liftFinger);
+root.addEventListener('pointercancel', liftFinger);
+
 // Android back button. Returns false when the app should close.
 window.pathkinBack = () => {
   const ui = app.ui;
   if (ui.confirm) actions['confirm-no']();
   else if (ui.inspect) actions['close-inspect']();
   else if (ui.view === 'settings') actions['settings-back']();
-  else if (ui.view === 'slots' || ui.view === 'credits' || ui.view === 'book') toTitle();
+  else if (ui.newTrail) actions['nt-cancel']();
+  else if (ui.view === 'photo') actions['photo-back']();
+  else if (ui.view === 'record') actions['open-settings-back']();
+  else if (ui.view === 'slots' || ui.view === 'credits' || ui.view === 'book' || ui.view === 'practice') toTitle();
   else if (ui.view === 'game') {
     const screen = app.profile.screen;
     if (screen === 'stop') {
@@ -619,8 +839,18 @@ async function boot() {
   attachSenses(() => app.settings);
   app.book = new Set(readJson('book', []));
   app.dailySolved = (readJson('daily', {}) || {}).solved || 0;
+  const rec = readJson('record', null);
+  if (rec && rec.stops && rec.daily) app.record = rec;
   refreshSlots();
   render();
+  // The splash shows for at most a second and a half.
+  const splash = document.getElementById('splash');
+  if (splash) {
+    splash.classList.add('gone');
+    setTimeout(() => splash.remove(), 400);
+  }
+  // The web build works offline once it has been opened.
+  if (!window.PathkinNative && 'serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 boot().catch((e) => {

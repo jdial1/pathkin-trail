@@ -1,5 +1,5 @@
 {
- "packVersion": 1,
+ "packVersion": 2,
  "goals": [
   {
    "id": "first_stop",
@@ -38,13 +38,13 @@
   },
   {
    "id": "half_home",
-   "stat": "delivered",
-   "atLeast": 18
+   "stat": "homePercent",
+   "atLeast": 50
   },
   {
    "id": "all_home",
-   "stat": "delivered",
-   "atLeast": 36
+   "stat": "homePercent",
+   "atLeast": 100
   },
   {
    "id": "rescuer",

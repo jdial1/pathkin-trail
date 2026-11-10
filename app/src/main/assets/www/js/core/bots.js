@@ -222,7 +222,24 @@ function switchAction(state, ctx, cands) {
   return best.action;
 }
 
+// Sends the creature most candidate rules agree can go next; among equals,
+// the one the candidates rank earliest, which keeps a cart load growing.
+function nextAction(target) {
+  return (state, ctx, cands) => {
+    const fam = family(state.family);
+    let best = null;
+    for (const id of state.queue) {
+      const { pOk } = split(state, ctx, cands, { id, target });
+      const early = fam.rank ? -cands.reduce((n, h) => n + fam.rank(h, ctx.creatures[id]), 0) / cands.length : 0;
+      if (!best || pOk > best.pOk || (pOk === best.pOk && early > best.early)) best = { pOk, early, id };
+    }
+    return { id: best.id, target };
+  };
+}
+
 const PLAYERS = {
+  queue_route: nextAction('cart'),
+  fold_sequence: nextAction('pad'),
   sort: sortOptimal,
   seat: seatAction,
   trade_ledger: tradeAction,

@@ -11,9 +11,10 @@ import { hashSeed } from './rng.js';
 import { buildRoster } from './traits.js';
 import * as runtime from './runtime.js';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
-const newStats = () => ({ stopsSolved: 0, flawlessStops: 0, legsCleared: 0, fullParties: 0, delivered: 0, rescued: 0, branchesSeen: 0, legsWithoutHints: 0 });
+const newStats = () => ({ stopsSolved: 0, flawlessStops: 0, legsCleared: 0, fullParties: 0, delivered: 0, rescued: 0, branchesSeen: 0, legsWithoutHints: 0, homePercent: 0 });
+const DEFAULT_OPTIONS = { assist: true, hardTrail: false };
 
 // Forward migrations: MIGRATIONS[n] upgrades a version-n document to n+1.
 const MIGRATIONS = {
@@ -72,6 +73,19 @@ const MIGRATIONS = {
       assist: { window: [], suggest: null },
     };
   },
+  // v4 adds Trail options (Hard Trail, roster size), trinkets and a
+  // "share of the roster home" counter. Nothing moves.
+  3: (doc) => {
+    if (doc.kind !== 'trail') return { ...doc, schemaVersion: 4 };
+    const delivered = doc.roster.filter((c) => c.status === 'delivered').length;
+    return {
+      ...doc,
+      schemaVersion: 4,
+      options: { ...DEFAULT_OPTIONS, ...doc.options },
+      stats: { ...doc.stats, homePercent: Math.round((100 * delivered) / doc.roster.length) },
+      trinketsSeen: [],
+    };
+  },
 };
 
 export class FutureSaveError extends Error {}
@@ -102,7 +116,10 @@ function newLegs(content) {
   return legs;
 }
 
-export function newProfile(content, seed, slot) {
+// options: { assist, hardTrail, rosterSize }. A Hard Trail is opt-in: a
+// creature that gets stranded there is gone for good.
+export function newProfile(content, seed, slot, options = {}) {
+  const opts = { ...DEFAULT_OPTIONS, rosterSize: content.traits.rosterSize, ...options };
   return {
     schemaVersion: SCHEMA_VERSION,
     kind: 'trail',
@@ -110,7 +127,7 @@ export function newProfile(content, seed, slot) {
     seed: seed >>> 0,
     rng: hashSeed(seed),
     screen: 'roster',
-    roster: buildRoster(content.traits, seed).map((c) => ({ ...c, at: 0, history: { ...c.history, returnedBy: {} } })),
+    roster: buildRoster(content.traits, seed, opts.rosterSize).map((c) => ({ ...c, at: 0, history: { ...c.history, returnedBy: {} } })),
     camp: 0,
     selection: [],
     hintTokens: content.trail.startHintTokens,
@@ -122,21 +139,23 @@ export function newProfile(content, seed, slot) {
     goals: {},
     seen: {},
     assist: { window: [], suggest: null },
-    options: { assist: true },
+    options: opts,
+    trinketsSeen: [],
   };
 }
 
 // The daily Stop: one seeded puzzle a day, the same for everyone, played
-// outside any Trail with its own small party.
-export function newDaily(content, date) {
-  const cfg = content.trail.daily;
+// outside any Trail with its own small party. With `practice` (a puzzle id
+// and a tier) the same thing becomes a free practice Stop of the player's choice.
+export function newDaily(content, date, practice = null) {
+  const cfg = { ...content.trail.daily, ...(practice ? { puzzles: [practice.puzzleId], tier: practice.tier } : {}) };
   const seed = hashSeed(date);
   const roster = buildRoster(content.traits, seed)
     .slice(0, cfg.partySize)
     .map((c) => ({ ...c, status: 'party', at: 0, history: { ...c.history, returnedBy: {} } }));
   const base = {
     schemaVersion: SCHEMA_VERSION,
-    kind: 'daily',
+    kind: practice ? 'practice' : 'daily',
     date,
     seed,
     rng: hashSeed(seed + 1),
@@ -158,6 +177,12 @@ export const branchDef = (leg, id) => leg.branches.find((b) => b.id === id);
 export const countStatus = (profile, status) => profile.roster.filter((c) => c.status === status).length;
 export const readyAt = (profile, camp) => profile.roster.filter((c) => c.status === 'available' && c.at === camp);
 export const strandedAt = (profile, camp) => profile.roster.filter((c) => c.status === 'lost' && c.lostAt === camp);
+// The Trail is over when everyone who can still come home has done so.
+export const goneCount = (profile) => profile.roster.filter((c) => c.gone).length;
+export const allHome = (profile) => countStatus(profile, 'delivered') === profile.roster.length - goneCount(profile);
+const homePercent = (profile) => Math.round((100 * countStatus(profile, 'delivered')) / profile.roster.length);
+// Cosmetic trinkets are unlocked by the profile's counters (content/trinkets.json).
+export const unlockedTrinkets = (profile, content) => content.trinkets.trinkets.filter((t) => profile.stats[t.stat] >= t.atLeast).map((t) => t.id);
 
 export function sharedTraits(a, b) {
   return Object.keys(a.traits).filter((slot) => a.traits[slot] === b.traits[slot]).length;
@@ -235,9 +260,11 @@ function finishLeg(profile, content, arrivedIds) {
       legState.tier = tierUp = order[at + 1];
     }
   }
+  const roster = withRoster(profile, arrivedIds, (c) => ({ ...c, status: home ? 'delivered' : 'available', at: leg.to }));
+  stats.homePercent = homePercent({ roster });
   return {
     ...profile,
-    roster: withRoster(profile, arrivedIds, (c) => ({ ...c, status: home ? 'delivered' : 'available', at: leg.to })),
+    roster,
     hintTokens: profile.hintTokens + earned,
     legs: { ...profile.legs, [run.legId]: legState },
     stats,
@@ -301,7 +328,7 @@ function reduceDaily(profile, ev, content) {
 function reduceInner(profile, ev, content) {
   const none = { profile, events: [] };
   const idle = !profile.run;
-  const daily = profile.kind === 'daily';
+  const daily = profile.kind !== 'trail';
   const home = HOME(content);
   switch (ev.type) {
     // ---- Shared by Trail and daily Stops ----
@@ -326,13 +353,18 @@ function reduceInner(profile, ev, content) {
     }
     case 'FAVOURITE':
       return { profile: { ...profile, roster: withRoster(profile, [ev.id], (c) => ({ ...c, favourite: !c.favourite })) }, events: [] };
+    // Give a creature one unlocked trinket to wear, or take it off.
+    case 'TRINKET': {
+      if (profile.kind !== 'trail' || (ev.trinket && !unlockedTrinkets(profile, content).includes(ev.trinket))) return none;
+      return { profile: { ...profile, roster: withRoster(profile, [ev.id], (c) => ({ ...c, trinket: ev.trinket || null })) }, events: [] };
+    }
   }
   if (daily) return reduceDaily(profile, ev, content);
 
   switch (ev.type) {
     case 'REROLL': {
       if (profile.screen !== 'roster') return none;
-      return { profile: { ...newProfile(content, hashSeed(profile.seed + 1), profile.slot), options: profile.options }, events: [] };
+      return { profile: newProfile(content, hashSeed(profile.seed + 1), profile.slot, profile.options), events: [] };
     }
     case 'ROSTER_OK':
       return profile.screen === 'roster' ? { profile: { ...profile, screen: 'map' }, events: [] } : none;
@@ -411,6 +443,8 @@ function reduceInner(profile, ev, content) {
           const history = { ...c.history, timesReturned: c.history.timesReturned + 1, returnedBy: { ...c.history.returnedBy, [stop.puzzleId]: times } };
           if (times >= content.trail.strandAfterReturns) {
             stranded.push(c.id);
+            // On a Hard Trail a stranded creature cannot be brought back.
+            if (profile.options.hardTrail) return { ...c, status: 'lost', gone: true, history: { ...history, returnedBy: {} } };
             return { ...c, status: 'lost', lostAt: leg.to, history: { ...history, returnedBy: {} } };
           }
           return { ...c, status: 'available', history };
@@ -442,8 +476,7 @@ function reduceInner(profile, ev, content) {
 
     case 'SUMMARY_OK': {
       if (profile.screen !== 'summary') return none;
-      const all = countStatus(profile, 'delivered') === profile.roster.length;
-      return { profile: { ...profile, screen: all ? 'finale' : 'camp', summary: null }, events: [] };
+      return { profile: { ...profile, screen: allHome(profile) ? 'finale' : 'camp', summary: null }, events: [] };
     }
 
     case 'PARK':
@@ -477,14 +510,14 @@ function reduceInner(profile, ev, content) {
         hintTokens -= 1;
       } else if (!canFreeRescue(profile, content, lost)) return none;
       const atHome = lost.lostAt === home;
+      const roster = withRoster(profile, [lost.id], ({ lostAt, ...c }) => ({ ...c, status: atHome ? 'delivered' : 'available', at: lostAt }));
       const next = {
         ...profile,
         hintTokens,
-        roster: withRoster(profile, [lost.id], ({ lostAt, ...c }) => ({ ...c, status: atHome ? 'delivered' : 'available', at: lostAt })),
-        stats: { ...profile.stats, rescued: profile.stats.rescued + 1, delivered: profile.stats.delivered + (atHome ? 1 : 0) },
+        roster,
+        stats: { ...profile.stats, rescued: profile.stats.rescued + 1, delivered: profile.stats.delivered + (atHome ? 1 : 0), homePercent: homePercent({ roster }) },
       };
-      const all = countStatus(next, 'delivered') === next.roster.length;
-      return { profile: all ? { ...next, screen: 'finale' } : next, events: [{ type: 'rescued', id: lost.id }] };
+      return { profile: allHome(next) ? { ...next, screen: 'finale' } : next, events: [{ type: 'rescued', id: lost.id }] };
     }
 
     default:
@@ -504,5 +537,14 @@ export function reduce(profile, ev, content) {
       events.push({ type: 'goal', id: g.id });
     }
   }
-  return { profile: goals === r.profile.goals ? r.profile : { ...r.profile, goals }, events };
+  // Newly unlocked trinkets are announced once.
+  let seen = r.profile.trinketsSeen;
+  for (const id of unlockedTrinkets(r.profile, content)) {
+    if (!seen.includes(id)) {
+      seen = [...seen, id];
+      events.push({ type: 'trinket', id });
+    }
+  }
+  const same = goals === r.profile.goals && seen === r.profile.trinketsSeen;
+  return { profile: same ? r.profile : { ...r.profile, goals, trinketsSeen: seen }, events };
 }

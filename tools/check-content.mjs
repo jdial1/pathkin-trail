@@ -5,11 +5,14 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, relative } from 'node:path';
+import { validate } from './schema.mjs';
 import { FAMILIES } from '../app/src/main/assets/www/js/core/families.js';
 import { prepareContent } from '../app/src/main/assets/www/js/core/content.js';
 import { hypotheses, generate } from '../app/src/main/assets/www/js/core/runtime.js';
 import { buildRoster } from '../app/src/main/assets/www/js/core/traits.js';
 import { newProfile } from '../app/src/main/assets/www/js/core/game.js';
+import { STICKERS } from '../app/src/main/assets/www/js/app/extras.js';
+import { TRINKET_IDS } from '../app/src/main/assets/www/js/app/creature.js';
 
 const repo = fileURLToPath(new URL('../', import.meta.url));
 const www = join(repo, 'app/src/main/assets/www');
@@ -18,7 +21,7 @@ const problems = [];
 const need = (ok, msg) => ok || problems.push(msg);
 const walk = (dir) => readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? walk(join(dir, f)) : [join(dir, f)]));
 
-const raw = { traits: json('traits.json'), puzzles: json('puzzles.json'), trail: json('trail.json'), theme: json('theme.json'), goals: json('achievements.json') };
+const raw = { traits: json('traits.json'), puzzles: json('puzzles.json'), trail: json('trail.json'), theme: json('theme.json'), goals: json('achievements.json'), trinkets: json('trinkets.json') };
 const { traits, trail, theme, goals } = raw;
 const slotIds = traits.slots.map((s) => s.id);
 let content = null;
@@ -28,7 +31,13 @@ try {
   problems.push('puzzles.json: ' + e.message);
 }
 
-// ---- Schema ----
+// ---- JSON Schemas: every pack must match its schema in schemas/ ----
+for (const [pack, file] of [['traits', 'traits'], ['puzzles', 'puzzles'], ['trail', 'trail'], ['theme', 'theme'], ['goals', 'achievements'], ['trinkets', 'trinkets']]) {
+  const schema = JSON.parse(readFileSync(join(repo, 'schemas', file + '.schema.json'), 'utf8'));
+  for (const problem of validate(raw[pack], schema)) problems.push(`${file}.json ${problem}`);
+}
+
+// ---- Rules the schemas cannot express ----
 need(Number.isInteger(traits.rosterSize) && traits.rosterSize > 0, 'traits.rosterSize');
 need(traits.partyMax >= 1 && traits.partyMax <= traits.rosterSize, 'traits.partyMax');
 for (const s of traits.slots) need(Array.isArray(s.values) && new Set(s.values).size === s.values.length && s.values.length >= 2, `slot ${s.id} values`);
@@ -95,6 +104,19 @@ if (content) {
   need(goals.goals.filter((g) => g.stat === 'delivered').every((g) => g.atLeast <= traits.rosterSize), 'a "delivered" goal exceeds the roster size');
   need(goals.goals.filter((g) => g.stat === 'branchesSeen').every((g) => g.atLeast <= trail.legs.reduce((n, l) => n + l.branches.length, 0)), 'a "branchesSeen" goal exceeds the number of branches');
 }
+// Trinkets: a real counter behind each, and art for each.
+if (content) {
+  const stats = newProfile(content, 1, 1).stats;
+  for (const t of raw.trinkets.trinkets) need(t.stat in stats && t.atLeast >= 1 && TRINKET_IDS.includes(t.id), `trinket ${t.id}`);
+  need(Array.isArray(trail.rosterSizes) && trail.rosterSizes.every((n) => n >= traits.partyMax && n <= traits.slots.reduce((m, s) => m * s.values.length, 1)), 'trail.rosterSizes');
+}
+// Biomes are data: every theme must carry a full scene and a tune.
+const SCENE_KEYS = ['sky', 'glow', 'cloud', 'far', 'mid', 'near', 'ground', 'lit', 'shade', 'dark', 'rim', 'path', 'ridge', 'landmark', 'frame'];
+for (const [id, th] of Object.entries(theme.themes)) {
+  need(th.accent && th.ground && th.groundDark && th.map, `theme ${id}: colours`);
+  need(th.scene && SCENE_KEYS.every((k) => th.scene[k]), `theme ${id}: scene`);
+  need(th.music && th.music.bpm > 0 && Array.isArray(th.music.scale) && th.music.scale.length >= 3, `theme ${id}: music`);
+}
 for (const [name, pal] of Object.entries(theme.palettes)) need(pal.length === traits.slots.find((s) => s.id === 'tint').values.length, `palette ${name} size`);
 
 // ---- Localisation: every key the content and code use exists in every
@@ -116,6 +138,8 @@ for (const leg of trail.legs) {
 }
 trail.camps.forEach(ref);
 for (const g of goals.goals) ref('goal.' + g.id);
+for (const t of raw.trinkets.trinkets) ref('trinket.' + t.id);
+for (const k of Object.keys(STICKERS)) ref('sticker.' + k);
 for (const file of walk(join(www, 'js'))) {
   const src = readFileSync(file, 'utf8');
   for (const m of src.matchAll(/\bt\(\s*'([a-zA-Z0-9_.]+)'/g)) if (!m[1].endsWith('.')) usedKeys.add(m[1]);

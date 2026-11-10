@@ -15,6 +15,7 @@ export const rawContent = {
   trail: load('trail.json'),
   theme: load('theme.json'),
   goals: load('achievements.json'),
+  trinkets: load('trinkets.json'),
   text: load('text.en.json'),
 };
 export const content = prepareContent(rawContent);

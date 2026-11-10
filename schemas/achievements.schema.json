@@ -1,0 +1,43 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Pathkin Trail achievements pack",
+ "type": "object",
+ "required": [
+  "packVersion",
+  "goals"
+ ],
+ "properties": {
+  "packVersion": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "goals": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "stat",
+     "atLeast"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9_]+$"
+     },
+     "stat": {
+      "type": "string",
+      "minLength": 1
+     },
+     "atLeast": {
+      "type": "integer",
+      "minimum": 1
+     }
+    },
+    "additionalProperties": false
+   }
+  }
+ },
+ "additionalProperties": false
+}

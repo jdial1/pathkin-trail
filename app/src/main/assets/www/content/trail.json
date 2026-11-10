@@ -1,5 +1,5 @@
 {
- "packVersion": 3,
+ "packVersion": 4,
  "hintTokenCap": 5,
  "startHintTokens": 1,
  "fullPartiesToRaiseTier": 3,
@@ -23,7 +23,9 @@
    "p_switch_run_01",
    "p_sort_gate_01",
    "p_sort_gate_02",
-   "p_pattern_grid_01"
+   "p_pattern_grid_01",
+   "p_queue_route_01",
+   "p_fold_sequence_01"
   ]
  },
  "assist": {
@@ -101,5 +103,9 @@
     }
    ]
   }
+ ],
+ "rosterSizes": [
+  36,
+  100
  ]
 }

@@ -16,10 +16,10 @@ export function decodeCombo(traits, index) {
 }
 
 // Roster = first `rosterSize` combos of a seeded shuffle, drawn without replacement.
-export function buildRoster(traits, seed) {
+export function buildRoster(traits, seed, size = traits.rosterSize) {
   const rng = makeRng(seed);
   const order = rng.shuffle(Array.from({ length: comboCount(traits) }, (_, i) => i));
-  return order.slice(0, traits.rosterSize).map((combo, i) => ({
+  return order.slice(0, size).map((combo, i) => ({
     id: 'c_' + String(i + 1).padStart(4, '0'),
     traits: decodeCombo(traits, combo),
     nickname: null,

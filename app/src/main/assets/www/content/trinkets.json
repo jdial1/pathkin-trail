@@ -1,0 +1,10 @@
+{
+ "packVersion": 1,
+ "trinkets": [
+  { "id": "scarf", "stat": "fullParties", "atLeast": 1 },
+  { "id": "bell", "stat": "legsCleared", "atLeast": 3 },
+  { "id": "flower", "stat": "flawlessStops", "atLeast": 3 },
+  { "id": "feather", "stat": "rescued", "atLeast": 1 },
+  { "id": "star", "stat": "homePercent", "atLeast": 100 }
+ ]
+}

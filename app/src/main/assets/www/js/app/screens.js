@@ -2,9 +2,11 @@
 // Interaction is wired by data-act attributes handled in main.js.
 
 import { creatureSvg } from './creature.js';
+import { blob } from './art/paint.js';
+import { queueBoard, foldBoard } from './extras.js';
 import { family } from '../core/families.js';
 import { decodeCombo, comboCount } from '../core/traits.js';
-import { HOME, countStatus, legDef, branchDef, puzzleDef, readyAt, strandedAt, friendsFor, canFreeRescue, sharedTraits } from '../core/game.js';
+import { HOME, countStatus, legDef, branchDef, puzzleDef, readyAt, strandedAt, friendsFor, canFreeRescue, sharedTraits, unlockedTrinkets } from '../core/game.js';
 
 export const esc = (s) => String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
 
@@ -25,7 +27,7 @@ function traitWords(a, c) {
 export function kin(a, c, { size = 52, cls = '', act = 'inspect', extra = '', pressed = null } = {}) {
   const label = a.t('creature.label', { name: kinName(a, c), traits: traitWords(a, c).join(', ') });
   return `<button class="kin ${cls}" data-act="${act}" data-id="${c.id}" aria-label="${esc(label)}"${pressed === null ? '' : ` aria-pressed="${pressed}"`}>
-${creatureSvg(c.traits, a.palette, { size })}${c.favourite ? '<span class="fav" aria-hidden="true">★</span>' : ''}${extra}</button>`;
+${creatureSvg(c.traits, a.palette, { size, trinket: c.trinket })}${c.favourite ? '<span class="fav" aria-hidden="true">★</span>' : ''}${extra}</button>`;
 }
 
 // Roster creatures, or the trail guides of the current Stop.
@@ -68,7 +70,8 @@ export function titleView(a) {
     ${any ? btn('title-continue', a.t('title.continue'), 'primary') : ''}
     ${btn('title-new', a.t('title.new'), any ? '' : 'primary')}
     <div class="actions inner">${btn('open-daily', a.t('title.daily'))}${btn('open-book', a.t('title.book'))}</div>
-    <div class="actions inner">${btn('open-settings', a.t('title.settings'))}${btn('open-credits', a.t('title.credits'), 'quiet')}</div>
+    <div class="actions inner">${btn('open-practice', a.t('title.practice'))}${btn('open-settings', a.t('title.settings'))}</div>
+    <div class="actions inner">${btn('open-credits', a.t('title.credits'), 'quiet')}</div>
   </div></main>`;
 }
 
@@ -109,14 +112,14 @@ export function settingsView(a) {
   const sizes = [1, 1.3, 1.6, 2];
   return `<main class="screen"><header class="bar"><h2>${esc(a.t('settings.title'))}</h2></header>
   <div class="body col">
-    ${toggle('audio')}${toggle('haptics')}${toggle('reducedMotion')}${toggle('colourSafe')}${toggle('assist')}
+    ${toggle('audio')}${toggle('music')}${toggle('haptics')}${toggle('reducedMotion')}${toggle('colourSafe')}${toggle('assist')}
     <small>${esc(a.t('settings.assistNote'))}</small>
     <label class="row"><span>${esc(a.t('settings.textSize'))}</span>
       <select data-change="setting" data-key="textSize">${sizes.map((z) => `<option value="${z}" ${s.textSize === z ? 'selected' : ''}>${Math.round(z * 100)}%</option>`).join('')}</select></label>
     <label class="row"><span>${esc(a.t('settings.language'))}</span>
       <select data-change="setting" data-key="language">${a.languages.map((l) => `<option value="${l}" ${s.language === l ? 'selected' : ''}>${esc(a.t('lang.' + l))}</option>`).join('')}</select></label>
   </div>
-  <div class="actions">${btn('settings-back', a.t('common.back'), 'primary')}</div></main>`;
+  <div class="actions">${btn('open-record', a.t('record.title'))}${btn('settings-back', a.t('common.back'), 'primary')}</div></main>`;
 }
 
 // Collection Book: every trait combination met so far, across all Trails.
@@ -140,13 +143,21 @@ export function bookView(a) {
 function rosterScreen(a) {
   const p = a.profile;
   return `<main class="screen"><header class="bar"><h2>${esc(a.t('roster.title'))}</h2></header>
-  <div class="body"><p>${esc(a.t('roster.body', { n: p.roster.length }))}</p>
+  <div class="body"><p>${esc(a.t('story.intro'))}</p><p>${esc(a.t('roster.body', { n: p.roster.length }))}</p>${p.options.hardTrail ? `<p class="warn">${esc(a.t('newtrail.hardOn'))}</p>` : ''}
   <div class="grid">${p.roster.map((c) => kin(a, c)).join('')}</div></div>
   <div class="actions">${btn('reroll', a.t('roster.reroll'))}${btn('roster-ok', a.t('roster.accept'), 'primary')}</div></main>`;
 }
 
 // Long names are squeezed to fit rather than clipped or overlapping.
 const fit = (text, max, px) => (text.length * px * 0.6 > max ? ` textLength="${max}" lengthAdjust="spacingAndGlyphs"` : '');
+
+// Little inked landmarks for the map, by the kind of landmark a biome has.
+const TENTS = ['#e9b65a', '#7fb6a0', '#d98a6a'];
+const DOODLE = {
+  tree: 'M0 0 v-9 M-7 -9 a7 7 0 1 1 14 0 a7 7 0 1 1 -14 0',
+  mesa: 'M-10 0 v-12 h8 v-6 h8 v18 Z',
+  pine: 'M-11 0 L-2 -16 L3 -8 L7 -13 L13 0 Z M-5 -10 l3 3 l3 -3',
+};
 
 function mapSvg(a) {
   const p = a.profile;
@@ -169,8 +180,10 @@ function mapSvg(a) {
     const flag = camp > 0 && p.legs[legs[camp - 1].id].fullParties > 0;
     return `<g class="campnode ${p.camp === camp ? 'on' : ''}" data-act="select-camp" data-camp="${camp}" role="button" tabindex="0" aria-label="${esc(label)}" aria-pressed="${p.camp === camp}">
       <rect x="14" y="${cy - 22}" width="272" height="44" rx="12" class="camphit"/>
-      <path d="M26 ${cy + 13} l15 -27 l15 27 Z" class="node camp"/>
-      ${flag ? `<path d="M41 ${cy - 14} v-17 l13 5 l-13 5" class="flag"/>` : ''}
+      ${home
+        ? `<path d="M27 ${cy + 13} v-14 q14 -20 28 0 v14 Z" class="node camp" style="--tent:#f4e6c4"/><path d="M23 ${cy - 1} q18 -26 36 0 Z" class="node camp" style="--tent:#d9634a"/><path d="M37 ${cy + 13} v-8 a4 4 0 0 1 8 0 v8 Z" class="door"/>`
+        : `<path d="M24 ${cy + 13} l17 -29 l17 29 Z" class="node camp" style="--tent:${TENTS[camp % TENTS.length]}"/><path d="M36 ${cy + 13} l5 -12 l5 12 Z" class="door"/>`}
+      ${flag ? `<path d="M41 ${cy - 16} v-15 l13 5 l-13 5" class="flag"/>` : ''}
       <text x="66" y="${cy + 5}" class="node-t"${fit(name, 150, 14)}>${esc(name)}</text>
       <circle cx="262" cy="${cy}" r="15" class="count"/><text x="262" y="${cy + 5}" text-anchor="middle" class="count-n">${n}</text>
       ${lost ? `<text x="234" y="${cy + 6}" text-anchor="middle" class="lost-n">!</text>` : ''}
@@ -178,9 +191,18 @@ function mapSvg(a) {
   };
   let camps = campNode(0, 0);
   let paths = '';
+  let land = '';
   legs.forEach((leg, li) => {
     const start = row;
     const end = row + leg.branches[0].stops.length + 1;
+    // Each leg's country: a wash of its colour and a few inked landmarks.
+    const mid = (y(start) + y(end)) / 2;
+    land += `<path d="${blob(li + 3, 150, mid, 150, (y(start) - y(end)) / 2 + 6, 10, 0.1)}" fill="${a.content.theme.themes[leg.theme].map}" class="biome"/>`;
+    for (let k = 0; k < 4; k++) {
+      const dx = k % 2 ? 268 : 22;
+      const dy = y(start) - 34 - Math.floor(k / 2) * 66 - (k % 2) * 24;
+      land += `<path d="${DOODLE[a.content.theme.themes[leg.theme].scene.landmark] || DOODLE.tree}" class="doodle" transform="translate(${dx} ${dy})"/>`;
+    }
     leg.branches.forEach((br, bi) => {
       const x = leg.branches.length === 1 ? 150 : bi === 0 ? 78 : 222;
       const pts = [[150, y(start) - 18], ...br.stops.map((_, si) => [x + (leg.branches.length === 1 ? (si % 2 ? 22 : -22) : 0), y(start + 1 + si)]), [150, y(end) + 18]];
@@ -200,7 +222,7 @@ function mapSvg(a) {
     row = end;
     camps += campNode(li + 1, row);
   });
-  return `<svg class="map" viewBox="0 0 300 ${H}" style="aspect-ratio:300/${H}" role="group" aria-label="${esc(a.t('map.title'))}">${paths}${out}${camps}</svg>`;
+  return `<svg class="map" viewBox="0 0 300 ${H}" style="aspect-ratio:300/${H}" role="group" aria-label="${esc(a.t('map.title'))}">${land}${paths}${out}${camps}</svg>`;
 }
 
 function mapScreen(a) {
@@ -364,6 +386,19 @@ const FOODS = {
 };
 const food = (id, size = 26) => `<svg class="food" viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">${FOODS[id]}</svg>`;
 
+// A stall keeper: a mossy, hatted lump who brightens up once fed.
+const KEEPER_COATS = ['#8fae7a', '#c9a66b', '#9a8fc0'];
+function keeperArt(n, fed) {
+  const c = KEEPER_COATS[n % KEEPER_COATS.length];
+  const ink = 'stroke="#33291f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"';
+  return `<svg class="keeper-art" viewBox="0 0 64 56" aria-hidden="true">
+    <path d="M8 54 C4 34 14 18 32 18 C50 18 60 34 56 54 Z" fill="${c}" ${ink}/>
+    <path d="M12 22 Q32 ${10 - n * 2} 52 22 Q32 28 12 22 Z" fill="#6b4a2f" ${ink}/><path d="M22 18 Q32 ${-2 + n * 3} 42 18 Z" fill="#8a5a2e" ${ink}/>
+    <circle cx="24" cy="34" r="4.5" fill="#fffdf6" ${ink}/><circle cx="40" cy="34" r="4.5" fill="#fffdf6" ${ink}/><circle cx="${fed ? 24 : 25}" cy="${fed ? 34 : 35}" r="1.9" fill="#33291f"/><circle cx="${fed ? 40 : 41}" cy="${fed ? 34 : 35}" r="1.9" fill="#33291f"/>
+    <path d="${fed ? 'M24 43 Q32 50 40 43' : 'M26 45 Q32 42 38 45'}" fill="none" ${ink}/>
+  </svg>`;
+}
+
 function tradeBoard(a, stop, def, fam) {
   const { items } = stop.setup;
   const set = (mask) => items.filter((_, i) => mask & (1 << i));
@@ -376,7 +411,7 @@ function tradeBoard(a, stop, def, fam) {
         .map((o) => `<div class="offer ${o.fb.ok ? 'yes' : o.fb.kind}">${set(o.action.items).map((id) => food(id, 20)).join('')}<b aria-label="${esc(a.t(o.fb.ok ? 'stop.accepted' : o.fb.kind === 'bad' ? 'stop.tradeBad' : 'stop.tradeMore'))}">${o.fb.ok ? '✓' : o.fb.kind === 'bad' ? '✕' : '+'}</b></div>`)
         .join('');
       return `<div class="target keeper ${fed ? 'fed' : ''}" role="button" tabindex="0" data-act="keeper" data-target="${tg.id}" data-keeper="${tg.n}" aria-label="${esc(a.t('target.keeper', { n: tg.n + 1 }))}">
-        <div class="target-head"><b>${esc(a.t('target.keeper', { n: tg.n + 1 }))}</b><span class="tally">${fed ? '✓' : '?'}</span></div>${rows}</div>`;
+        <div class="target-head">${keeperArt(tg.n, fed)}<b>${esc(a.t('target.keeper', { n: tg.n + 1 }))}</b><span class="tally">${fed ? '✓' : '?'}</span></div>${rows}</div>`;
     })
     .join('');
   const chips = items
@@ -468,7 +503,7 @@ function switchBoard(a, stop, def, fam) {
     <div class="runs" aria-label="${esc(a.t('stop.seen'))}">${runs}</div>`;
 }
 
-const BOARDS = { sort: sortBoard, seat: seatBoard, trade_ledger: tradeBoard, signal_guess: signalBoard, echo_match: echoBoard, switch_run: switchBoard };
+const BOARDS = { sort: sortBoard, seat: seatBoard, trade_ledger: tradeBoard, signal_guess: signalBoard, echo_match: echoBoard, switch_run: switchBoard, queue_route: queueBoard, fold_sequence: foldBoard };
 
 function stopScreen(a) {
   const p = a.profile;
@@ -485,7 +520,7 @@ function stopScreen(a) {
   const coach = p.kind === 'trail' && p.stats.stopsSolved === 0 && p.run.stopIndex === 0 && fam.kind === 'sort';
   const line = a.ui.sel ? a.t('stop.tapTarget') : coach ? a.t(tried ? 'coach.learn' : 'coach.send') : a.loc(def.blurb);
   let where;
-  if (p.kind === 'daily') where = a.t('daily.title');
+  if (p.kind !== 'trail') where = a.t(p.kind === 'practice' ? 'practice.title' : 'daily.title');
   else {
     const leg = legDef(a.content, p.run.legId);
     where = a.t('stop.stopOf', { n: p.run.stopIndex + 1, t: branchDef(leg, p.run.branch).stops.length });
@@ -495,7 +530,7 @@ function stopScreen(a) {
     .map((id) => {
       const on = picking ? a.ui.convoy.includes(id) : a.ui.sel === id;
       return kin(a, byId(a, id), {
-        size: 46,
+        size: 40,
         act: 'tray',
         cls: 'tray-kin' + (on ? ' sel' : ''),
         pressed: on,
@@ -507,11 +542,14 @@ function stopScreen(a) {
       <small>${esc(where)} · ${esc(a.t('tier.' + stop.tier))}</small></div>
     <div class="patience" role="img" aria-label="${esc(a.t('stop.patience'))} ${stop.patience}/${max}">${pips}</div></header>
   <div class="body">
-    <p class="blurb">${esc(line)}</p>${guides && !tried && fam.kind === 'sort' ? `<p class="meta">${esc(a.t('stop.guides'))}</p>` : ''}${hints}
+    ${!tried || a.ui.sel ? `<p class="blurb">${esc(line)}</p>` : ''}${guides && !tried && fam.kind === 'sort' ? `<p class="meta">${esc(a.t('stop.guides'))}</p>` : ''}${hints}
     ${board}
   </div>
   <section class="tray" aria-label="${esc(a.t('stop.tray'))}">${tray}</section>
-  <div class="actions">${btn('pause', a.t('stop.pause'))}${btn('hint', `${a.t('stop.hint')} (${p.hintTokens})`, '', p.hintTokens ? '' : 'disabled')}</div>
+  <div class="corner">
+    <button class="round" data-act="hint" aria-label="${esc(a.t('stop.hint'))}: ${p.hintTokens}" ${p.hintTokens ? '' : 'disabled'}><span aria-hidden="true">?</span><i aria-hidden="true">${p.hintTokens}</i></button>
+    <button class="round" data-act="pause" aria-label="${esc(a.t('stop.pause'))}"><span aria-hidden="true" class="bars"></span></button>
+  </div>
   ${stop.status === 'playing' ? '' : stopResult(a, stop, fam)}</main>`;
 }
 
@@ -561,7 +599,7 @@ function campScreen(a) {
   <div class="tabs" role="tablist">${tabs}</div>
   <div class="body">${list.length ? `<div class="grid">${list.map((c) => kin(a, c, { cls: c.status === 'lost' ? 'lost' : '' })).join('')}</div>` : `<p>${esc(a.t('camp.empty'))}</p>`}
     <p class="meta">${esc(a.t(note))}</p></div>
-  <div class="actions">${btn('goto', a.t('camp.toMap'), 'primary', 'data-screen="map"')}</div></main>`;
+  <div class="actions">${btn('open-photo', a.t('photo.title'))}${btn('goto', a.t('camp.toMap'), 'primary', 'data-screen="map"')}</div></main>`;
 }
 
 function goalsScreen(a) {
@@ -579,21 +617,22 @@ function goalsScreen(a) {
 function finaleScreen(a) {
   const p = a.profile;
   const d = countStatus(p, 'delivered');
-  const all = d === p.roster.length;
+  const gone = p.roster.filter((c) => c.gone).length;
+  const all = d === p.roster.length - gone;
   return `<main class="screen title"><h1 class="logo">${esc(a.t('finale.title'))}</h1>
-  <p class="tagline">${esc(all ? a.t('finale.all') : a.t('finale.some', { d, t: p.roster.length }))}</p>
+  <p class="tagline">${esc(all ? a.t(gone ? 'finale.hardAll' : 'finale.all', { d, g: gone }) : a.t('finale.some', { d, t: p.roster.length }))}</p>${all ? `<p class="tagline">${esc(a.t('story.outro'))}</p>` : ''}
   <div class="grid">${p.roster.filter((c) => c.status === 'delivered').map((c) => kin(a, c, { size: 40 })).join('')}</div>
-  <div class="actions col">${all ? '' : btn('goto', a.t('finale.keep'), '', 'data-screen="map"')}${btn('to-title', a.t('finale.toTitle'), 'primary')}</div></main>`;
+  <div class="actions col">${btn('open-photo', a.t('photo.title'))}${all ? '' : btn('goto', a.t('finale.keep'), '', 'data-screen="map"')}${btn('to-title', a.t('finale.toTitle'), 'primary')}</div></main>`;
 }
 
 function dailyDoneScreen(a) {
   const r = a.profile.result;
   const solved = r.status === 'solved';
-  return `<main class="screen title"><h1 class="logo">${esc(a.t('daily.title'))}</h1>
+  const practice = a.profile.kind === 'practice';
+  return `<main class="screen title"><h1 class="logo">${esc(a.t(practice ? 'practice.title' : 'daily.title'))}</h1>
   <p class="tagline">${esc(a.t(solved ? 'daily.solved' : 'daily.failed', { n: r.through, w: r.wrong }))}</p>
-  <p>${esc(a.t('daily.total', { n: a.dailySolved }))}</p>
-  <p class="meta">${esc(a.t('daily.tomorrow'))}</p>
-  <div class="actions col">${btn('to-title', a.t('finale.toTitle'), 'primary')}</div></main>`;
+  ${practice ? '' : `<p>${esc(a.t('daily.total', { n: a.dailySolved }))}</p><p>${esc(a.t('daily.streak', { n: a.record.daily.streak, best: a.record.daily.best }))}</p><p class="meta">${esc(a.t('daily.tomorrow'))}</p>`}
+  <div class="actions col">${practice ? btn('open-practice', a.t('practice.again')) : ''}${btn('to-title', a.t('finale.toTitle'), 'primary')}</div></main>`;
 }
 
 export function gameView(a) {
@@ -613,6 +652,14 @@ function rescuePanel(a, c) {
     <div class="actions">${p.hintTokens > 0 ? btn('rescue-token', a.t('rescue.token', { n: p.hintTokens })) : ''}${free ? btn('rescue-free', a.t('rescue.free'), 'primary') : ''}</div></div>`;
 }
 
+// Trinkets the player has unlocked, to put on this creature or take off.
+function trinketRow(a, c) {
+  const have = unlockedTrinkets(a.profile, a.content);
+  if (!have.length) return '';
+  const item = (id, label) => `<button class="chip ${(c.trinket || '') === id ? 'on' : ''}" data-act="trinket" data-trinket="${id}" aria-pressed="${(c.trinket || '') === id}">${esc(label)}</button>`;
+  return `<div class="card"><b>${esc(a.t('trinket.title'))}</b><div class="chips">${item('', a.t('trinket.none'))}${have.map((id) => item(id, a.t('trinket.' + id))).join('')}</div></div>`;
+}
+
 export function inspectSheet(a) {
   const c = byId(a, a.ui.inspect);
   if (!c) return '';
@@ -624,11 +671,12 @@ export function inspectSheet(a) {
   const rest = camp && c.status === 'available' ? btn('park', a.t('camp.park')) : camp && c.status === 'parked' ? btn('retrieve', a.t('camp.retrieve')) : '';
   const own = !c.guide;
   return `<div class="scrim" data-act="close-inspect"><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(kinName(a, c))}">
-    <div class="inspect-top">${creatureSvg(c.traits, a.palette, { size: 96 })}
+    <div class="inspect-top">${creatureSvg(c.traits, a.palette, { size: 96, trinket: c.trinket })}
       <div><h2>${esc(kinName(a, c))}</h2>
       <small>${own ? `${esc(a.t('inspect.cleared', { n: c.history.stopsCleared }))}<br>${esc(a.t('inspect.returned', { n: c.history.timesReturned }))}` : esc(a.t('inspect.guide'))}</small></div></div>
     <ul class="traits">${rows}</ul>
     ${camp && c.status === 'lost' ? rescuePanel(a, c) : ''}
+    ${own && p.kind === 'trail' ? trinketRow(a, c) : ''}
     ${own && p.kind === 'trail' ? `<label class="row"><span>${esc(a.t('inspect.nickname'))}</span>
       <input type="text" maxlength="16" value="${esc(c.nickname || '')}" data-change="nickname" autocomplete="off"></label>` : ''}
     <div class="actions">${own && p.kind === 'trail' ? btn('fav', a.t(c.favourite ? 'inspect.unfav' : 'inspect.fav'), '', `aria-pressed="${c.favourite}"`) : ''}${rest}${btn('close-inspect', a.t('common.close'), 'primary')}</div>
@@ -638,6 +686,7 @@ export function inspectSheet(a) {
 export function pauseSheet(a) {
   return `<div class="scrim"><div class="sheet center" role="dialog" aria-modal="true" aria-label="${esc(a.t('pause.title'))}">
     <h2>${esc(a.t('pause.title'))}</h2>
+    ${a.profile.stop ? `<div class="card">${esc(a.loc(puzzleDef(a.content, a.profile.stop.puzzleId).blurb))}</div>` : ''}
     <div class="actions col">${btn('resume', a.t('pause.resume'), 'primary')}${btn('open-settings', a.t('title.settings'))}${btn('to-title', a.t('pause.quit'))}</div></div></div>`;
 }
 
@@ -646,3 +695,5 @@ export function confirmSheet(a) {
     <p>${esc(a.ui.confirm.text)}</p>
     <div class="actions">${btn('confirm-no', a.t('common.cancel'))}${btn('confirm-yes', a.t('common.yes'), 'primary')}</div></div></div>`;
 }
+
+export { btn, byId, miniOf, moves };

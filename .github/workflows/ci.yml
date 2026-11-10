@@ -1,0 +1,60 @@
+# Runs the whole gate on every push and pull request: content checks, the
+# core test suite, the browser play-through, and an Android build.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Content gate (schemas, text in every language, asset ledger)
+        run: node tools/check-content.mjs
+      - name: Core tests
+        # Pull requests run a shorter pass; main runs the full 10,000 seeds.
+        run: npm test
+        env:
+          SEEDS: ${{ github.event_name == 'pull_request' && '1000' || '10000' }}
+      - name: Browser play-through
+        run: node tools/ui-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ui-screenshots
+          path: build/ui-smoke
+          if-no-files-found: ignore
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - name: Install the SDK platform the app compiles against
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - name: Build debug and release (release runs the content gate)
+        run: ./gradlew assembleDebug assembleRelease --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: app/build/outputs/apk/**/*.apk

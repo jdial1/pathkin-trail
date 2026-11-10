@@ -1,0 +1,870 @@
+{
+ "schemaVersion": 3,
+ "kind": "trail",
+ "slot": 1,
+ "seed": 20261111,
+ "rng": 945769273,
+ "screen": "stop",
+ "roster": [
+  {
+   "id": "c_0001",
+   "traits": {
+    "crest": "fin",
+    "eyes": "slit",
+    "mark": "stripe",
+    "feet": "roller",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0002",
+   "traits": {
+    "crest": "fin",
+    "eyes": "lidded",
+    "mark": "dot",
+    "feet": "hooves",
+    "tint": 2
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0003",
+   "traits": {
+    "crest": "horn",
+    "eyes": "slit",
+    "mark": "ring",
+    "feet": "paws",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0004",
+   "traits": {
+    "crest": "fin",
+    "eyes": "round",
+    "mark": "stripe",
+    "feet": "paws",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0005",
+   "traits": {
+    "crest": "bare",
+    "eyes": "wide",
+    "mark": "none",
+    "feet": "hooves",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0006",
+   "traits": {
+    "crest": "horn",
+    "eyes": "lidded",
+    "mark": "stripe",
+    "feet": "paws",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0007",
+   "traits": {
+    "crest": "bare",
+    "eyes": "lidded",
+    "mark": "none",
+    "feet": "hooves",
+    "tint": 2
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0008",
+   "traits": {
+    "crest": "horn",
+    "eyes": "slit",
+    "mark": "stripe",
+    "feet": "roller",
+    "tint": 3
+   },
+   "nickname": "Fern",
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0009",
+   "traits": {
+    "crest": "horn",
+    "eyes": "wide",
+    "mark": "none",
+    "feet": "paws",
+    "tint": 2
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0010",
+   "traits": {
+    "crest": "horn",
+    "eyes": "slit",
+    "mark": "none",
+    "feet": "hooves",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0011",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "round",
+    "mark": "none",
+    "feet": "webs",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0012",
+   "traits": {
+    "crest": "bare",
+    "eyes": "slit",
+    "mark": "stripe",
+    "feet": "roller",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0013",
+   "traits": {
+    "crest": "bare",
+    "eyes": "slit",
+    "mark": "ring",
+    "feet": "webs",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0014",
+   "traits": {
+    "crest": "fin",
+    "eyes": "round",
+    "mark": "dot",
+    "feet": "paws",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0015",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "round",
+    "mark": "stripe",
+    "feet": "paws",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0016",
+   "traits": {
+    "crest": "fin",
+    "eyes": "slit",
+    "mark": "dot",
+    "feet": "roller",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "delivered",
+   "history": {
+    "stopsCleared": 9,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 3
+  },
+  {
+   "id": "c_0017",
+   "traits": {
+    "crest": "fin",
+    "eyes": "slit",
+    "mark": "dot",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0018",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "lidded",
+    "mark": "stripe",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0019",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "round",
+    "mark": "none",
+    "feet": "paws",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0020",
+   "traits": {
+    "crest": "horn",
+    "eyes": "lidded",
+    "mark": "none",
+    "feet": "hooves",
+    "tint": 2
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0021",
+   "traits": {
+    "crest": "fin",
+    "eyes": "lidded",
+    "mark": "dot",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0022",
+   "traits": {
+    "crest": "horn",
+    "eyes": "lidded",
+    "mark": "none",
+    "feet": "hooves",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0023",
+   "traits": {
+    "crest": "fin",
+    "eyes": "round",
+    "mark": "dot",
+    "feet": "hooves",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0024",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "slit",
+    "mark": "ring",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0025",
+   "traits": {
+    "crest": "horn",
+    "eyes": "wide",
+    "mark": "none",
+    "feet": "paws",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0026",
+   "traits": {
+    "crest": "fin",
+    "eyes": "round",
+    "mark": "dot",
+    "feet": "webs",
+    "tint": 0
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0027",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "wide",
+    "mark": "stripe",
+    "feet": "roller",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0028",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "wide",
+    "mark": "dot",
+    "feet": "paws",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0029",
+   "traits": {
+    "crest": "bare",
+    "eyes": "wide",
+    "mark": "dot",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0030",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "round",
+    "mark": "none",
+    "feet": "roller",
+    "tint": 2
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0031",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "lidded",
+    "mark": "dot",
+    "feet": "hooves",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0032",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "wide",
+    "mark": "dot",
+    "feet": "roller",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "party",
+   "history": {
+    "stopsCleared": 3,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 1
+  },
+  {
+   "id": "c_0033",
+   "traits": {
+    "crest": "fin",
+    "eyes": "lidded",
+    "mark": "stripe",
+    "feet": "webs",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "lost",
+   "history": {
+    "stopsCleared": 0,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 0,
+   "lostAt": 1
+  },
+  {
+   "id": "c_0034",
+   "traits": {
+    "crest": "bare",
+    "eyes": "lidded",
+    "mark": "stripe",
+    "feet": "hooves",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "available",
+   "history": {
+    "stopsCleared": 0,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 0
+  },
+  {
+   "id": "c_0035",
+   "traits": {
+    "crest": "tuft",
+    "eyes": "lidded",
+    "mark": "ring",
+    "feet": "hooves",
+    "tint": 1
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "available",
+   "history": {
+    "stopsCleared": 0,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 0
+  },
+  {
+   "id": "c_0036",
+   "traits": {
+    "crest": "fin",
+    "eyes": "round",
+    "mark": "none",
+    "feet": "webs",
+    "tint": 3
+   },
+   "nickname": null,
+   "favourite": false,
+   "status": "available",
+   "history": {
+    "stopsCleared": 0,
+    "timesReturned": 0,
+    "returnedBy": {}
+   },
+   "at": 0
+  }
+ ],
+ "camp": 1,
+ "selection": [],
+ "hintTokens": 5,
+ "legs": {
+  "leg1": {
+   "tier": "gentle",
+   "fullParties": 2,
+   "cleared": 2
+  },
+  "leg2": {
+   "tier": "gentle",
+   "fullParties": 1,
+   "cleared": 1
+  },
+  "leg3": {
+   "tier": "gentle",
+   "fullParties": 1,
+   "cleared": 1
+  }
+ },
+ "run": {
+  "legId": "leg2",
+  "branch": "b",
+  "stopIndex": 0,
+  "startSize": 16,
+  "flawlessStops": 0,
+  "hintsUsed": 0,
+  "returned": [],
+  "stranded": []
+ },
+ "stop": {
+  "puzzleId": "p_totem_match_01",
+  "family": "totem_match",
+  "tier": "gentle",
+  "hyp": {
+   "slot": "crest",
+   "order": [
+    "bare",
+    "horn",
+    "fin",
+    "tuft"
+   ]
+  },
+  "setup": {},
+  "extra": {},
+  "queue": [
+   "c_0017",
+   "c_0019",
+   "c_0020",
+   "c_0021",
+   "c_0022",
+   "c_0023",
+   "c_0024",
+   "c_0025",
+   "c_0026",
+   "c_0027",
+   "c_0028",
+   "c_0029",
+   "c_0030",
+   "c_0031",
+   "c_0032"
+  ],
+  "held": [],
+  "placed": {
+   "c_0018": "t3"
+  },
+  "examples": {
+   "x_1": {
+    "crest": "tuft",
+    "eyes": "wide",
+    "mark": "stripe",
+    "feet": "paws",
+    "tint": 0
+   },
+   "x_2": {
+    "crest": "fin",
+    "eyes": "slit",
+    "mark": "ring",
+    "feet": "roller",
+    "tint": 3
+   }
+  },
+  "observations": [
+   {
+    "action": {
+     "id": "x_1",
+     "target": "t3"
+    },
+    "pre": null,
+    "fb": {
+     "ok": true
+    },
+    "guide": true
+   },
+   {
+    "action": {
+     "id": "x_2",
+     "target": "t2"
+    },
+    "pre": null,
+    "fb": {
+     "ok": true
+    },
+    "guide": true
+   },
+   {
+    "action": {
+     "id": "c_0018",
+     "target": "t3"
+    },
+    "pre": null,
+    "fb": {
+     "ok": true
+    }
+   }
+  ],
+  "hints": [],
+  "badges": {},
+  "patience": 8,
+  "wrong": 0,
+  "status": "playing"
+ },
+ "summary": null,
+ "stats": {
+  "stopsSolved": 12,
+  "flawlessStops": 3,
+  "legsCleared": 4,
+  "fullParties": 4,
+  "delivered": 16,
+  "rescued": 0,
+  "branchesSeen": 3,
+  "legsWithoutHints": 4
+ },
+ "goals": {
+  "first_stop": true,
+  "first_leg": true,
+  "full_party": true,
+  "no_hints_leg": true,
+  "flawless": true,
+  "first_home": true,
+  "ten_stops": true
+ },
+ "seen": {
+  "leg1:main": true,
+  "leg2:a": true,
+  "leg3:main": true
+ },
+ "assist": {
+  "window": [
+   {
+    "failed": false,
+    "flawless": true
+   },
+   {
+    "failed": false,
+    "flawless": true
+   },
+   {
+    "failed": false,
+    "flawless": false
+   },
+   {
+    "failed": false,
+    "flawless": false
+   },
+   {
+    "failed": false,
+    "flawless": false
+   }
+  ],
+  "suggest": null
+ },
+ "options": {
+  "assist": true
+ }
+}

@@ -664,6 +664,145 @@ const PROBES = {
     },
     describe: (h, t) => h.map((atom, j) => t('rule.switch', { n: j + 1, rule: describeRule(atom, t) })),
   },
+
+  // A cart takes riders in loads. Within a load, riders must board in a
+  // hidden order of one slot's values (never stepping back). The cart leaves
+  // when it is full or when nobody waiting could board next.
+  queue_route: {
+    kind: 'probe',
+    targets: () => [{ id: 'cart', label: 'target.cart' }],
+    hyps: (def, cfg, traits) => orders(traits, cfg.slots),
+    rank: (h, traits) => h.order.indexOf(traits[h.slot]),
+    create(ctx, cfg, rng) {
+      const hyp = rng.pick(this.hyps(ctx.def, cfg, ctx.traits));
+      // An earlier load of trail guides, in the order they boarded.
+      const riders = [];
+      for (let i = 0; i < cfg.examples; i++) riders.push(decodeCombo(ctx.traits, rng.int(comboCount(ctx.traits))));
+      riders.sort((a, b) => this.rank(hyp, a) - this.rank(hyp, b));
+      const examples = {};
+      const guides = riders.map((traits, i) => {
+        examples['x_' + (i + 1)] = traits;
+        return { action: { id: 'x_' + (i + 1), target: 'cart' }, pre: { load: riders.slice(0, i).map((_, k) => 'x_' + (k + 1)), waiting: [] }, fb: { ok: true } };
+      });
+      return { hyp, setup: { cap: cfg.capacity }, extra: { load: [], trips: 0 }, guides, examples };
+    },
+    pre: (state) => ({ load: state.extra.load, waiting: state.queue }),
+    outcome(h, action, pre, env) {
+      const of = (id) => env.creatures[id] || env.examples[id];
+      const traits = of(action.id);
+      if (action.target !== 'cart' || !traits) return null;
+      const last = pre.load[pre.load.length - 1];
+      if (last && this.rank(h, traits) < this.rank(h, of(last))) return { fb: { ok: false }, cost: 1, deliver: [] };
+      const load = [...pre.load, action.id];
+      const rest = pre.waiting.filter((id) => id !== action.id);
+      const depart = load.length >= env.setup.cap || !rest.some((id) => this.rank(h, of(id)) >= this.rank(h, traits));
+      return { fb: { ok: true }, cost: 0, deliver: depart ? load.filter((id) => env.creatures[id]).map((id) => ({ id, at: 'cart' })) : [], hold: depart ? [] : [action.id], load: depart ? [] : load, departed: depart };
+    },
+    key: (fb) => (fb.ok ? 'ok' : 'no'),
+    after: (state, action, out) => (out.fb.ok ? { load: out.load, trips: state.extra.trips + (out.departed ? 1 : 0) } : state.extra),
+    // Rule found: every candidate puts everyone still waiting in the same order.
+    settle(state, env, cands) {
+      const all = [...state.held, ...state.queue];
+      const done = all.map((id) => ({ id, at: 'cart' }));
+      if (state.queue.length === 0) return { status: 'solved', deliver: done };
+      const sign = (h, a, b) => Math.sign(this.rank(h, env.creatures[a]) - this.rank(h, env.creatures[b]));
+      for (let i = 0; i < all.length; i++)
+        for (let j = i + 1; j < all.length; j++) {
+          const first = sign(cands[0], all[i], all[j]);
+          if (!cands.every((h) => sign(h, all[i], all[j]) === first)) return null;
+        }
+      return { status: 'solved', deliver: done, auto: true };
+    },
+    onFail: (state) => state.held.map((id) => ({ id, at: 'cart' })),
+    slots: (h) => [h.slot],
+    describe: (h, t) => [t('rule.queue', { slot: t('slot.' + h.slot), order: sayOrder(h, t) })],
+  },
+
+  // A row of stepping pads that follows a repeating pattern. Each pad wants
+  // one kind of creature; find the pattern and send the right creature onto
+  // the next pad. When nobody waiting fits, a trail guide steps on instead,
+  // which shows what that pad wanted.
+  fold_sequence: {
+    kind: 'probe',
+    targets: () => [{ id: 'pad', label: 'target.pad' }],
+    hyps(def, cfg, traits) {
+      // Repeating patterns of two kinds (A and B) with no shorter repeat inside.
+      const binary = [];
+      for (let len = 2; len <= cfg.period; len++)
+        for (let code = 1; code < (1 << len) - 1; code++) {
+          const seq = Array.from({ length: len }, (_, i) => (code >> i) & 1);
+          const repeats = [1, 2].some((p) => p < len && len % p === 0 && seq.every((v, i) => v === seq[i % p]));
+          if (!repeats) binary.push(seq);
+        }
+      const out = [];
+      for (const slot of cfg.slots) {
+        const v = slotValues(traits, slot);
+        // Three ways to split a slot's four values into two kinds.
+        for (const mate of v.slice(1)) {
+          const a = anyOf(slot, [v[0], mate]);
+          const b = anyOf(slot, v.filter((x) => x !== v[0] && x !== mate));
+          for (const seq of binary) out.push({ slot, pattern: seq.map((k) => (k ? b : a)) });
+        }
+        if (cfg.forms.includes('values')) for (const order of permutations(v)) out.push({ slot, pattern: order.map((x) => has(slot, x)) });
+      }
+      return out;
+    },
+    fits: (h, index, traits) => evaluate(h.pattern[index % h.pattern.length], traits),
+    // A guide that fits the pad: the first waiting creature's look, with the pad's trait.
+    guide(h, index, env, base) {
+      const rule = h.pattern[index % h.pattern.length];
+      const value = slotValues(env.traits, h.slot).find((v) => evaluate(rule, { [h.slot]: v }));
+      return { ...base, [h.slot]: value };
+    },
+    create(ctx, cfg, rng, partyIds) {
+      const hyp = rng.pick(this.hyps(ctx.def, cfg, ctx.traits));
+      const env = { traits: ctx.traits };
+      const examples = {};
+      const guides = [];
+      for (let i = 0; i < cfg.examples; i++) {
+        const id = 'x_' + (i + 1);
+        examples[id] = this.guide(hyp, i, env, decodeCombo(ctx.traits, rng.int(comboCount(ctx.traits))));
+        guides.push({ action: { id, target: 'pad' }, pre: { index: i }, fb: { ok: true } });
+      }
+      return { hyp, setup: {}, extra: { index: cfg.examples, row: Object.keys(examples) }, guides, examples };
+    },
+    pre: (state) => ({ index: state.extra.index }),
+    outcome(h, action, pre, env) {
+      const traits = env.creatures[action.id] || env.examples[action.id];
+      if (action.target !== 'pad' || !traits) return null;
+      return this.fits(h, pre.index, traits) ? { fb: { ok: true }, cost: 0, deliver: env.creatures[action.id] ? [{ id: action.id, at: 'pad' }] : [] } : { fb: { ok: false }, cost: 1, deliver: [] };
+    },
+    key: (fb) => (fb.ok ? 'ok' : 'no'),
+    after: (state, action, out) => (out.fb.ok ? { index: state.extra.index + 1, row: [...state.extra.row, action.id] } : state.extra),
+    // Guides fill any pads that nobody waiting can step on.
+    follow(state, env) {
+      let { index, row } = state.extra;
+      const examples = {};
+      const obs = [];
+      let n = Object.keys(state.examples).length;
+      while (state.queue.length && !state.queue.some((id) => this.fits(state.hyp, index, env.creatures[id])) && obs.length < 12) {
+        const id = 'x_' + ++n;
+        examples[id] = this.guide(state.hyp, index, env, env.creatures[state.queue[0]]);
+        obs.push({ action: { id, target: 'pad' }, pre: { index }, fb: { ok: true } });
+        row = [...row, id];
+        index++;
+      }
+      return obs.length ? { extra: { index, row }, examples, observations: obs } : null;
+    },
+    // Rule found: every candidate agrees on who fits each of the coming pads.
+    settle(state, env, cands) {
+      const done = state.queue.map((id) => ({ id, at: 'pad' }));
+      if (state.queue.length === 0) return { status: 'solved', deliver: [] };
+      for (let k = 0; k < 12; k++)
+        for (const id of state.queue) {
+          const first = this.fits(cands[0], state.extra.index + k, env.creatures[id]);
+          if (!cands.every((h) => this.fits(h, state.extra.index + k, env.creatures[id]) === first)) return null;
+        }
+      return { status: 'solved', deliver: done, auto: true };
+    },
+    slots: (h) => [h.slot],
+    describe: (h, t) => [t('rule.fold', { slot: t('slot.' + h.slot), pattern: h.pattern.map((r) => (r.op === 'has' ? t(h.slot + '.' + r.value) : r.values.map((v) => t(h.slot + '.' + v)).join(t('rule.listOr')))).join(' → ') })],
+  },
 };
 
 export const FAMILIES = {

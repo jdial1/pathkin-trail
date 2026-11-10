@@ -4,15 +4,20 @@ An original deduction-puzzle journey game for phones and tablets. You lead a
 roster of 36 Pathkins along a Trail of three legs to their new home. Every
 Stop is a different kind of puzzle, and every attempt tells you something.
 
-Current version: **0.3.0-alpha** (specification phases 0 to 2, the puzzle
-families of phase 4, and the engine-level parts of phase 3).
+Current version: **1.0.0-rc1**. Everything in the specification that can be
+built and checked by code is in. What still needs people (real devices,
+playtests, audits, legal review) is listed in `docs/RELEASE_CHECKLIST.md`.
 
 ## What is in the game
 
 - **The Trail**: three legs of three Stops, camps between them, and a fork in
   the middle leg. Twelve Stops, each a different mechanic; a run plays nine.
-- **Twelve puzzle mechanics** (see the table below), all defined as data, plus
-  three more that appear as Daily Stops.
+- **Fifteen puzzle families** and seventeen puzzles, all defined as data: the
+  twelve on the Trail (see the table below) and five more that appear as
+  Daily Stops and in Practice.
+- **Practice**: any puzzle at any tier, with nothing at stake.
+- **Trail choices**: 36 or 100 Pathkins, and an opt-in Hard Trail on which a
+  stranded creature is lost for good.
 - **Four difficulty tiers per leg** (gentle, steady, hard, expert). A leg
   rises one tier after three full parties; the player can set any tier at any
   time.
@@ -28,14 +33,40 @@ families of phase 4, and the engine-level parts of phase 3).
 - **Gentle help** (adaptive assist): a free hint after two failed Stops, an
   offer to go up a tier after three flawless ones. Never changes a Stop in
   progress; can be switched off.
-- **Goals**, a **Daily Stop** (one seeded puzzle a day), and a **Collection
-  Book** of every trait combination met.
+- **Goals**, **trinkets** to wear, a **Daily Stop** with a gentle streak, a
+  **Collection Book**, a **picture maker** with stickers, and a **play
+  record** that never leaves the device.
+- **Sound**: a generated tune per biome that thins out during a Stop, a
+  distinct cue per kind of feedback, and a small call per creature.
 - **Accessibility**: tap and drag paths for every action, shape cues for every
   trait, colour-safe palette, text up to 200%, reduced motion, screen-reader
   labels, no timers.
-- **Languages**: English and Spanish.
+- **Languages**: English, Spanish, French, German and Portuguese.
+- **Gestures**: drag, long-press, double-tap or pinch to zoom the map, swipe
+  between Camp tabs; none is the only way to do anything.
 - **Saves**: three slots, written after every event, three rolling backups,
-  versioned with forward migration (version 1 and 2 saves still load).
+  versioned with forward migration (saves from versions 1, 2 and 3 still load).
+
+## Look and feel
+
+The game is presented as a storybook, not as an app:
+
+- A painted scene fills the screen behind everything: meadow, canyon or peak
+  for the leg being played, a dusk camp with tents and a fire, a village at
+  journey's end, and worn parchment for the map and journal screens. Scenes
+  are drawn by code (`js/app/art/`) in a cut-paper style with ragged edges
+  and paper grain, and are painted once per change of screen, never while
+  playing.
+- Puzzles are things in the world: plank bridges, cave mouths, stall keepers,
+  log seats joined by ropes, a standing stone, carved posts, burrow doors,
+  tilled soil, stepping stones, a pond, rail sheds and switch levers.
+- Pathkins are drawn with a shadow side, a face and a little life: those
+  waiting on the grassy ledge bob and blink.
+- Controls are wooden plaques and paper scraps; lettering is chunky and
+  outlined so it reads over any scene; patience is a row of lanterns.
+- Two openly licensed fonts are bundled (see `ASSET_LEDGER.md`). All art is
+  original; nothing is traced or taken from any other game.
+- The reduced-motion setting stills the scenes and the creatures.
 
 ## Layout
 
@@ -48,6 +79,10 @@ families of phase 4, and the engine-level parts of phase 3).
 | `tests/` | Node tests for the core (no device needed); `tests/golden/` holds saves from older versions. |
 | `app/src/main/assets/www/js/core/bots.js` | Simulation bots (random, deduction-only, rule-knowing) used by every gate. |
 | `tools/` | `check-content.mjs` (content gate), `tune.mjs` (difficulty tuning), `serve.mjs` (desktop web build), `ui-smoke.mjs` (browser play-through). |
+| `schemas/` | JSON Schemas for the content packs. |
+| `docs/` | `RELEASE_CHECKLIST.md` (every specification gate and its state), `EXTENDING.md`, `ART_DIRECTION.md`. |
+| `store/` | Draft store listing and privacy policy. |
+| `.github/workflows/ci.yml` | Runs every gate and an Android build on each push. |
 | `ASSET_LEDGER.md` | Provenance row for every shipped asset. |
 
 ## Commands
@@ -60,6 +95,7 @@ node tools/tune.mjs         # how guide counts change bot results per tier
 node tools/serve.mjs        # play in a desktop browser at http://127.0.0.1:8765
 node tools/ui-smoke.mjs     # headless play-through of the real UI (needs Chrome; npm install first)
 gradlew.bat assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
+gradlew.bat assembleRelease # runs the content gate first; signed if keystore.properties exists
 ```
 
 ## Quality gates
@@ -73,8 +109,8 @@ gradlew.bat assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
 | Honest generation | `tests/core.test.mjs` | Guides are truthful, never give the rule away, and the rule always splits the party. |
 | Whole game | `tests/game.test.mjs` | 100 scripted Trails (some led carelessly) reach "everyone home" with valid statuses throughout; every branch is played; stranding and all rescue paths; assist; goals; daily Stop. |
 | Saves | `tests/game.test.mjs` | Round-trip after every event changes nothing; version 1 and version 2 golden saves migrate and play on; future versions are refused. |
-| Content | `tools/check-content.mjs` | Pack schema, every text key in every language with matching placeholders, no reference-game names anywhere, asset ledger complete. |
-| Real UI | `tools/ui-smoke.mjs` | Chrome play-through of all twelve Stops by tap and drag, mid-Stop reload, rescue, daily, book, Spanish, large text, version 1 and 2 saves. |
+| Content | `tools/check-content.mjs` | JSON Schemas for every pack, every text key in every language with matching placeholders, no reference-game names anywhere, asset ledger complete. |
+| Real UI | `tools/ui-smoke.mjs` | Chrome play-through of all twelve Stops by tap and drag, mid-Stop reload, rescue, daily, practice, trinkets, saving a picture, map zoom, play record, Spanish, large text, older saves. |
 
 ## The twelve Stops
 
@@ -96,8 +132,9 @@ the set of hidden rules still consistent with everything the player has seen.
 | 3 | The Still Pond | `echo_match` | Find who casts the reflection shown | How the pond changes traits |
 | 3 | Rail Switches | `switch_run` | Set three switches and send convoys to four sheds | Which traits flip each switch |
 
-Daily Stops also draw on `gate_sort` (two gates), its three-gate variant, and
-a 2x2 `pattern_grid`.
+Daily Stops and Practice also offer `gate_sort` (two gates), its three-gate
+variant, a 2x2 `pattern_grid`, `queue_route` (riders board a cart in a hidden
+order) and `fold_sequence` (stepping pads that follow a repeating pattern).
 
 There are three kinds of family, which is what the screens and bots key on:
 **sort** (every creature has one correct target), **seat** (creatures sit on
@@ -110,10 +147,13 @@ and a board in `screens.js`; the runtime, saves, hints and tests pick it up.
 
 ## Not done yet
 
+See `docs/RELEASE_CHECKLIST.md` for the full list against the specification.
+In short:
+
 - Never run on a physical device or emulator; only the web bundle has been
-  driven, in desktop Chrome.
-- Production art, music and animation (creatures are placeholder shapes,
-  sounds are synthesised tones).
-- The specification's `queue_route` and `fold_sequence` families.
-- Photo mode, opt-in Hard Trail mode, cosmetic trinkets, map pinch-zoom,
-  three more languages, iOS build, store assets, privacy and legal review.
+  driven, in desktop Chrome. Frame rate, start time and memory are unmeasured.
+- No playtests, accessibility audit, translation review or legal review.
+- The art is drawn by code and the sound is synthesised; there is no
+  artist-made art, recorded music or voice. Scenes do not move in parallax.
+- No iOS store build (the web build installs to a home screen and works
+  offline), no release signing key, and the CI workflow has not yet run.

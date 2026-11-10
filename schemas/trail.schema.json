@@ -1,0 +1,180 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "title": "Pathkin Trail trail pack",
+ "type": "object",
+ "required": [
+  "packVersion",
+  "hintTokenCap",
+  "startHintTokens",
+  "fullPartiesToRaiseTier",
+  "strandAfterReturns",
+  "rescueSharedTraits",
+  "rosterSizes",
+  "daily",
+  "assist",
+  "camps",
+  "legs"
+ ],
+ "properties": {
+  "packVersion": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "hintTokenCap": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "startHintTokens": {
+   "type": "integer",
+   "minimum": 0
+  },
+  "fullPartiesToRaiseTier": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "strandAfterReturns": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "rescueSharedTraits": {
+   "type": "integer",
+   "minimum": 1
+  },
+  "rosterSizes": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "integer",
+    "minimum": 1
+   }
+  },
+  "daily": {
+   "type": "object",
+   "required": [
+    "partySize",
+    "tier",
+    "puzzles"
+   ],
+   "properties": {
+    "partySize": {
+     "type": "integer",
+     "minimum": 2
+    },
+    "tier": {
+     "type": "string",
+     "minLength": 1
+    },
+    "puzzles": {
+     "type": "array",
+     "minItems": 1,
+     "items": {
+      "type": "string",
+      "minLength": 1
+     }
+    }
+   },
+   "additionalProperties": false
+  },
+  "assist": {
+   "type": "object",
+   "required": [
+    "window",
+    "failsForFreeHint",
+    "flawlessForTierUp"
+   ],
+   "properties": {
+    "window": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "failsForFreeHint": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "flawlessForTierUp": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   "additionalProperties": false
+  },
+  "camps": {
+   "type": "array",
+   "minItems": 2,
+   "items": {
+    "type": "string",
+    "pattern": "^loc:[a-zA-Z0-9_.]+$"
+   }
+  },
+  "legs": {
+   "type": "array",
+   "minItems": 1,
+   "items": {
+    "type": "object",
+    "required": [
+     "id",
+     "name",
+     "theme",
+     "from",
+     "to",
+     "branches"
+    ],
+    "properties": {
+     "id": {
+      "type": "string",
+      "minLength": 1
+     },
+     "name": {
+      "type": "string",
+      "pattern": "^loc:[a-zA-Z0-9_.]+$"
+     },
+     "theme": {
+      "type": "string",
+      "minLength": 1
+     },
+     "from": {
+      "type": "integer",
+      "minimum": 0
+     },
+     "to": {
+      "type": "integer",
+      "minimum": 1
+     },
+     "branches": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+       "type": "object",
+       "required": [
+        "id",
+        "name",
+        "stops"
+       ],
+       "properties": {
+        "id": {
+         "type": "string",
+         "minLength": 1
+        },
+        "name": {
+         "type": "string",
+         "pattern": "^loc:[a-zA-Z0-9_.]+$"
+        },
+        "stops": {
+         "type": "array",
+         "minItems": 1,
+         "items": {
+          "type": "string",
+          "minLength": 1
+         }
+        }
+       },
+       "additionalProperties": false
+      }
+     }
+    },
+    "additionalProperties": false
+   }
+  }
+ },
+ "additionalProperties": false
+}

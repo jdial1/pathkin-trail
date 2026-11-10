@@ -1,5 +1,5 @@
 {
- "packVersion": 3,
+ "packVersion": 4,
  "tierOrder": [
   "gentle",
   "steady",
@@ -598,6 +598,94 @@
      60
     ]
    }
+  },
+  "queue_route": {
+   "gentle": {
+    "slotCount": 2,
+    "forms": [],
+    "capacity": 4,
+    "examples": 3,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 3,
+    "forms": [],
+    "capacity": 4,
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [],
+    "capacity": 4,
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [],
+    "capacity": 4,
+    "examples": 3,
+    "sends": [
+     1,
+     60
+    ]
+   }
+  },
+  "fold_sequence": {
+   "gentle": {
+    "slotCount": 3,
+    "forms": [],
+    "period": 2,
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "steady": {
+    "slotCount": 4,
+    "forms": [],
+    "period": 3,
+    "examples": 1,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "hard": {
+    "slotCount": 4,
+    "forms": [
+     "values"
+    ],
+    "period": 4,
+    "examples": 2,
+    "sends": [
+     1,
+     60
+    ]
+   },
+   "expert": {
+    "slotCount": 5,
+    "forms": [
+     "values"
+    ],
+    "period": 4,
+    "examples": 4,
+    "sends": [
+     1,
+     60
+    ]
+   }
   }
  },
  "puzzles": [
@@ -834,6 +922,34 @@
     "eyes",
     "feet",
     "mark"
+   ]
+  },
+  {
+   "id": "p_queue_route_01",
+   "family": "queue_route",
+   "title": "loc:p_queue_route_01.title",
+   "blurb": "loc:family.queue_route.blurb",
+   "params": {},
+   "slots": [
+    "eyes",
+    "crest",
+    "tint",
+    "feet",
+    "mark"
+   ]
+  },
+  {
+   "id": "p_fold_sequence_01",
+   "family": "fold_sequence",
+   "title": "loc:p_fold_sequence_01.title",
+   "blurb": "loc:family.fold_sequence.blurb",
+   "params": {},
+   "slots": [
+    "feet",
+    "tint",
+    "crest",
+    "mark",
+    "eyes"
    ]
   }
  ]

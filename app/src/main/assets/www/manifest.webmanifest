@@ -1,0 +1,19 @@
+{
+ "name": "Pathkin Trail",
+ "short_name": "Pathkin",
+ "description": "Lead the Pathkins home, one clue at a time.",
+ "start_url": "./index.html",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#f4dfae",
+ "theme_color": "#2f7d46",
+ "icons": [
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any maskable"
+  }
+ ]
+}

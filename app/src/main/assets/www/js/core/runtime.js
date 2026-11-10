@@ -212,7 +212,9 @@ export function generate(ctx, tier, rngState, partyIds) {
   // Starting clues, dropping any that would already give the rule away.
   const guides = (made.guides || []).map((g) => ({ ...g, guide: true }));
   let state = { ...base, observations: guides };
-  while (state.observations.length && autoSolved(state, ctx)) state = { ...base, observations: state.observations.slice(0, -1) };
+  while (state.observations.length && !fam.follow && autoSolved(state, ctx)) state = { ...base, observations: state.observations.slice(0, -1) };
+  state = { ...state };
+  follow(state, ctx);
   return { state, rngState: rng.state };
 }
 
@@ -220,6 +222,18 @@ function autoSolved(state, ctx) {
   const fam = family(state.family);
   const s = fam.settle(state, envOf(state, ctx), candidates(state, ctx));
   return !!(s && s.auto);
+}
+
+// Applies a family's own follow-up to a state being built (mutates it).
+function follow(state, ctx) {
+  const fam = family(state.family);
+  if (!fam.follow) return;
+  const more = fam.follow(state, envOf(state, ctx));
+  if (!more) return;
+  candCache.delete(state);
+  state.extra = more.extra;
+  state.examples = { ...state.examples, ...more.examples };
+  state.observations = [...state.observations, ...more.observations.map((o) => ({ ...o, guide: true }))];
 }
 
 function deliver(state, list) {
@@ -283,7 +297,7 @@ export function attempt(prev, ctx, action, legacyTarget) {
     extra: fam.after ? fam.after(prev, action, out) : prev.extra,
   };
   // Stateless families can narrow the previous candidate list directly.
-  if (!out.silent && !fam.alive && !fam.relevant && candCache.has(prev)) {
+  if (!out.silent && !fam.alive && !fam.relevant && !fam.follow && candCache.has(prev)) {
     candCache.set(state, narrow(sp, candCache.get(prev), state, ctx, { action, pre, fb: out.fb }));
   }
   const delivered = out.share ? share(state.queue, out.share, out.first, fam.reserve ? fam.reserve(prev) : []) : out.deliver;
@@ -296,6 +310,7 @@ export function attempt(prev, ctx, action, legacyTarget) {
     state.held = state.held.filter((x) => x !== id);
     state.queue.push(id);
   }
+  follow(state, ctx);
   const events = [];
   const base = { id: action.id, target: action.target, action, fb: out.fb };
   if (out.cost) {

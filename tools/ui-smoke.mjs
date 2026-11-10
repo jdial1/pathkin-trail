@@ -99,6 +99,8 @@ try {
   await shot('01-title');
   await act('title-new');
   await act('slot-new', '[data-slot="1"]');
+  await shot('01b-new-trail');
+  await act('nt-start');
   await page.waitForSelector('[data-act="reroll"]');
   const before = (await state()).seed;
   await act('reroll');
@@ -305,8 +307,64 @@ try {
   assert.equal(await page.evaluate(() => window.__pathkin.settings.language), 'es');
   assert.equal(await page.evaluate(() => document.documentElement.lang), 'es');
 
-  // ---- Saves from both older versions open and land on the map ----
+  // ---- Practice: the two extra puzzle kinds, played through the interface ----
+  for (const id of ['p_queue_route_01', 'p_fold_sequence_01']) {
+    await act('open-practice');
+    await act('practice-tier', '[data-tier="steady"]');
+    await act('practice-start', `[data-puzzle="${id}"]`);
+    await page.waitForSelector('.screen.stop');
+    await shot('23-practice-' + id);
+    s = await state();
+    assert.equal(s.kind, 'practice');
+    let moves = 0;
+    while (s.stop.status === 'playing') {
+      const before = JSON.stringify(s.stop);
+      await perform(await answer());
+      s = await state();
+      assert.notEqual(JSON.stringify(s.stop), before, id + ': a move changed nothing');
+      assert.ok(++moves < 80);
+    }
+    assert.equal(s.stop.status, 'solved');
+    await act('stop-continue');
+    await act('to-title');
+  }
+  assert.equal(await page.evaluate(() => localStorage.getItem('pathkin.slot1') !== null), true, 'practice never overwrites a Trail');
+
+  // ---- Picture maker, trinkets, play record ----
+  await act('title-continue');
+  await act('goto', '[data-screen="camp"]');
+  await page.click('.grid .kin');
+  await page.waitForSelector('.sheet [data-act="trinket"]');
+  await page.click('[data-act="trinket"]:not([data-trinket=""])');
+  s = await state();
+  assert.ok(s.roster.some((c) => c.trinket), 'a creature wears a trinket');
+  await shot('24-trinket');
+  await act('close-inspect', '.btn');
+  await act('open-photo');
+  await act('photo-pick', '[data-sticker="star"]');
+  await page.click('.photo', { position: { x: 60, y: 60 } });
+  await page.click('.photo', { position: { x: 200, y: 40 } });
+  assert.equal(await page.evaluate(() => window.__pathkin.ui.photo.stickers.length), 2);
+  await act('photo-scene', ':nth-child(4)');
+  await shot('25-photo');
+  const download = page.waitForEvent('download', { timeout: 15000 });
+  await act('photo-save');
+  assert.match((await download).suggestedFilename(), /\.png$/, 'the picture is saved as a PNG');
+  await act('photo-back');
+  await act('goto', '[data-screen="map"]');
+  await page.locator('.mapbody').dblclick({ position: { x: 20, y: 20 } });
+  assert.match(await page.locator('.map').getAttribute('style'), /width: 170%/, 'double-tap zooms the map');
+  await act('to-title');
+  await act('open-settings');
+  await act('open-record');
+  assert.ok((await page.locator('.record li').count()) >= 12, 'the play record lists the Stops played');
+  await shot('26-record');
+  await act('open-settings-back');
+  await act('settings-back');
+
+  // ---- Saves from every older version open and land on the map ----
   for (const [slot, file, atCamp] of [[2, 'save-v1-midstop', 1], [3, 'save-v2-midstop', 2]]) {
+    const version = await page.evaluate(async () => (await import('./js/core/game.js')).SCHEMA_VERSION);
     const text = readFileSync(new URL(`../tests/golden/${file}.json`, import.meta.url), 'utf8');
     await page.evaluate(([n, doc]) => localStorage.setItem('pathkin.slot' + n, JSON.stringify({ ...JSON.parse(doc), slot: n })), [slot, text]);
     await page.reload();
@@ -314,7 +372,7 @@ try {
     await act('title-continue');
     await act('slot-open', `[data-slot="${slot}"]`);
     s = await state();
-    assert.equal(s.schemaVersion, 3);
+    assert.equal(s.schemaVersion, version);
     assert.equal(s.screen, 'map');
     assert.equal(s.roster.filter((c) => c.at === atCamp && c.status === 'available').length, 16);
     await shot(`22-migrated-${file}`);
